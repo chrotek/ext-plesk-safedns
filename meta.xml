@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 1999-2018. Plesk International GmbH. -->
+<module>
+  <id>safedns-api-v1</id>
+  <name>SafeDNS API V1</name>
+  <description>This extension provides the functionality needed for integration with SafeDNS.</description>
+  <category>dns</category>
+  <category>clouds</category>
+  <version>1.0.1</version>
+  <release>1</release>
+  <vendor>chrotek</vendor>
+  <url>https://github.com/chrotek/ext-plesk-safedns</url>
+  <plesk_min_version>12.0.18</plesk_min_version>
+  <!--Localized descriptions below-->
+  <description xml:lang="ar">يوفر هذا الملحق الوظيفة اللازمة للتكامل مع SafeDNS</description>
+  <description xml:lang="ca-ES"></description>
+  <description xml:lang="cs-CZ">Toto rozšíření poskytuje funkce potřebné pro integraci s SafeDNS</description>
+  <description xml:lang="da-DK">Denne udvidelse giver den nødvendige funktionalitet til integration med SafeDNS</description>
+  <description xml:lang="de-DE">Diese Erweiterung bietet die für die Integration mit SafeDNS erforderliche Funktionalität</description>
+  <description xml:lang="el-GR"> Αυτή η επέκταση παρέχει τη λειτουργικότητα που απαιτείται για την ενσωμάτωση στο SafeDNS</description>
+  <description xml:lang="es-ES">Esta extensión proporciona la funcionalidad necesaria para la integración con SafeDNS</description>
+  <description xml:lang="fi-FI">Tämä laajennus tarjoaa toiminnot, joita tarvitaan integrointiin SafeDNS: n kanssa</description>
+  <description xml:lang="fr-FR">Cette extension fournit les fonctionnalités nécessaires à lintégration avec SafeDNS</description>
+  <description xml:lang="he-IL">תוסף זה מספק את הפונקציונליות הדרושה לשילוב עם SafeDNS</description>
+  <description xml:lang="id-ID">Ekstensi ini menyediakan fungsionalitas yang diperlukan untuk integrasi dengan SafeDNS</description>
+  <description xml:lang="it-IT">Questa estensione offre le funzionalità necessarie per l&#39;integrazione con SafeDNS</description>
+  <description xml:lang="ja-JP">この拡張機能は、SafeDNSとの統合に必要な機能を提供します</description>
+  <description xml:lang="ko-KR">이 확장은 SafeDNS와의 통합에 필요한 기능을 제공합니다</description>
+  <description xml:lang="ms-MY">Pelanjutan ini menyediakan fungsi yang diperlukan untuk integrasi dengan SafeDNS</description>
+  <description xml:lang="nb-NO">Denne utvidelsen gir funksjonaliteten som er nødvendig for integrering med SafeDNS</description>
+  <description xml:lang="nl-NL"> Deze extensie biedt de functionaliteit die nodig is voor integratie met SafeDNS</description>
+  <description xml:lang="pl-PL">To rozszerzenie zapewnia funkcjonalność niezbędną do integracji z SafeDNS</description>
+  <description xml:lang="pt-BR">Esta extensão fornece a funcionalidade necessária para integração com o SafeDNS</description>
+  <description xml:lang="pt-PT">Esta extensão fornece a funcionalidade necessária para integração com o SafeDNS</description>
+  <description xml:lang="ro-RO">Această extensie oferă funcționalitatea necesară integrării cu SafeDNS</description>
+  <description xml:lang="ru-RU">Это расширение обеспечивает функциональность, необходимую для интеграции с SafeDNS</description>
+  <description xml:lang="sv-SE">Denna tillägg tillhandahåller den funktionalitet som krävs för integration med SafeDNS</description>
+  <description xml:lang="th-TH">ส่วนขยายนี้มีฟังก์ชันที่จำเป็นสำหรับการรวมเข้ากับ SafeDNS</description>
+  <description xml:lang="tl-PH">Ang extension na ito ay nagbibigay ng pag-andar na kinakailangan para sa pagsasama sa SafeDNS.</description>
+  <description xml:lang="tr-TR">Bu uzantı SafeDNS ile entegrasyon için gerekli işlevselliği sağlar</description>
+  <description xml:lang="uk-UA">Це розширення забезпечує функціонал, необхідний для інтеграції з SafeDNS</description>
+  <description xml:lang="vi-VN">Tiện ích mở rộng này cung cấp chức năng cần thiết để tích hợp với SafeDNS</description>
+  <description xml:lang="zh-CN">此扩展提供了与SafeDNS集成所需的功能</description>
+  <description xml:lang="zh-TW">此擴展提供了與SafeDNS集成所需的功能</description>
+</module>
