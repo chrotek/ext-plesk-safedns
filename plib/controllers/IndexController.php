@@ -10,11 +10,39 @@ class IndexController extends pm_Controller_Action
     public function init()
     {
         parent::init();
+        if (is_null($this->taskManager)) {
+            $this->taskManager = new pm_LongTask_Manager();
+        }
 
         // Init title for all actions
 //        $this->view->pageTitle = $this->lmsg('page_title');
         $this->view->pageTitle = 'SafeDNS Plesk Integration';
     }
+
+    public function addTaskAction()
+    {
+        $domainId = $this->getParam('domainId', -1);
+        $type = $this->getParam('type', 'succeed');
+        $domain = $domainId != -1 ? new pm_Domain($domainId) : null;
+
+        pm_Log::info("Create '{$type}' task and set params");
+        $task = $type === 'succeed'
+            ? new Modules_LongTasksExample_Task_Succeed()
+            : new Modules_LongTasksExample_Task_Fail();
+        $task->setParams([
+            'p1' => 1,
+            'p2' => 2,
+        ]);
+        $task->setParam('p3', 3);
+
+        if (isset($domain)) {
+            $task->setParam('domainName', $domain->getName());
+        }
+        $this->taskManager->start($task, $domain);
+
+        $this->_redirect('index/form');
+    }
+
 
     public function toolsAction() {
         $status='null';
@@ -41,12 +69,12 @@ class IndexController extends pm_Controller_Action
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/refresh.png',
                 'title' => 'Sync All',
                 'description' => 'Sync all Domains with SafeDNS',
-                'link' => "javascript:Modules_Route53_Confirm"
+                'link' => pm_Context::getActionUrl('index', 'add-task') . '/type/succeed',
             ], [
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/remove-selected.png',
                 'title' => 'Remove All',
                 'description' => 'Remove all domains from SafeDNS',
-                'link' => pm_Context::getActionUrl('index/sync-all-zones'),
+                'link' => pm_Context::getActionUrl('index', 'add-task') . '/type/fail',
             ], [
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/key.png',
                 'title' => 'Set API Key',
