@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright 1999-2018. Plesk International GmbH. -->
 <module>
-  <id>safedns_plesk</id>
-  <name>SafeDNS API V1</name>
+  <id>safedns-plesk</id>
+  <name>safedns-plesk</name>
   <description>This extension provides the functionality needed for integration with SafeDNS.</description>
   <category>dns</category>
   <category>clouds</category>

@@ -4,6 +4,7 @@
 
 class IndexController extends pm_Controller_Action
 {
+    private $taskManager = NULL;
     protected $_accessLevel = 'admin';
     protected $_api_key = '--------------------';
 
@@ -27,8 +28,8 @@ class IndexController extends pm_Controller_Action
 
         pm_Log::info("Create '{$type}' task and set params");
         $task = $type === 'succeed'
-            ? new Modules_LongTasksExample_Task_Succeed()
-            : new Modules_LongTasksExample_Task_Fail();
+            ? new Modules_SafednsPlesk_Task_Succeed()
+            : new Modules_SafednsPlesk_Task_Fail();
         $task->setParams([
             'p1' => 1,
             'p2' => 2,
@@ -40,7 +41,7 @@ class IndexController extends pm_Controller_Action
         }
         $this->taskManager->start($task, $domain);
 
-        $this->_redirect('index/form');
+        $this->_redirect('index/tools');
     }
 
 
@@ -79,9 +80,7 @@ class IndexController extends pm_Controller_Action
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/key.png',
                 'title' => 'Set API Key',
                 'description' => 'Set/Change API Key',
-//                'link' => 'Zform.php',
-//                'link' => $this->view->form ,
-                'link' => pm_Context::getActionUrl('index/form'),
+                'link' => pm_Context::getActionUrl('index/tools'),
             ]//,[
              //   'icon' => \pm_Context::getBaseUrl() . 'icons/32/key.png',
              //   'title' => 'Enable/Disable',
