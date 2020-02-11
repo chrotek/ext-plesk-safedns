@@ -27,9 +27,22 @@ class IndexController extends pm_Controller_Action
         $domain = $domainId != -1 ? new pm_Domain($domainId) : null;
 
         pm_Log::info("Create '{$type}' task and set params");
-        $task = $type === 'succeed'
-            ? new Modules_SafednsPlesk_Task_Succeed()
-            : new Modules_SafednsPlesk_Task_Fail();
+//        $task = $type === 'succeed'
+//            ? new Modules_SafednsPlesk_Task_Succeed()
+//            : new Modules_SafednsPlesk_Task_Fail();
+        if ($type == 'succeed') {
+            $task=new Modules_SafednsPlesk_Task_Succeed();
+        } elseif ($type == 'fail') {
+            $task=new Modules_SafednsPlesk_Task_Fail();
+        } elseif ($type == 'synchronise-all-domains') {
+            $task=new Modules_SafednsPlesk_Task_SynchroniseAllDomains();
+        } elseif ($type == 'synchronise-a-domain') {
+            $task=new Modules_SafednsPlesk_Task_SynchroniseADomain();
+        } elseif ($type == 'delete-all-domains') {
+            $task=new Modules_SafednsPlesk_Task_DeleteAllDomains();
+        } elseif ($type == 'delete-a-domain') {
+            $task=new Modules_SafednsPlesk_Task_DeleteADomain();
+        }
         $task->setParams([
             'p1' => 1,
             'p2' => 2,
@@ -67,21 +80,45 @@ class IndexController extends pm_Controller_Action
         pm_Settings::set('enabled',$originalsetting);								*/
         $this->view->tools = [
             [
+                'icon' => \pm_Context::getBaseUrl() . 'icons/32/key.png',
+                'title' => 'Set API Key',
+
+                'description' => 'Set/Change API Key',
+                'link' => pm_Context::getActionUrl('index/form'),
+            ], [
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/refresh.png',
                 'title' => 'Sync All',
                 'description' => 'Sync all Domains with SafeDNS',
-                'link' => pm_Context::getActionUrl('index', 'add-task') . '/type/succeed',
+                'link' => pm_Context::getActionUrl('index', 'add-task') . '/type/synchronise-all-domains',
             ], [
-                'icon' => \pm_Context::getBaseUrl() . 'icons/32/remove-selected.png',
-                'title' => 'Remove All',
-                'description' => 'Remove all domains from SafeDNS',
-                'link' => pm_Context::getActionUrl('index', 'add-task') . '/type/fail',
+                'icon' => \pm_Context::getBaseUrl() . 'icons/32/refresh.png',
+                'title' => 'Sync Domain',
+                'description' => 'Sync a specific domains with SafeDNS',
+                'link' => pm_Context::getActionUrl('index', 'add-task') . '/type/synchronise-a-domain',
+            ],[
+                'icon' => \pm_Context::getBaseUrl() . 'icons/32/redalert.png',
+                'title' => 'Delete All',
+                'description' => 'Deletes all Plesk domains from SafeDNS',
+                'link' => pm_Context::getActionUrl('index', 'add-task') . '/type/delete-all-domains',
             ], [
-                'icon' => \pm_Context::getBaseUrl() . 'icons/32/key.png',
-                'title' => 'Set API Key',
-                'description' => 'Set/Change API Key',
-                'link' => pm_Context::getActionUrl('index/tools'),
-            ]//,[
+                'icon' => \pm_Context::getBaseUrl() . 'icons/32/redalert.png',
+                'title' => 'Delete Domain',
+
+                'description' => 'Deletes a specific domain from SafeDNS',
+                'link' => pm_Context::getActionUrl('index', 'add-task'). '/type/delete-a-domain',
+            ]
+
+
+
+
+
+
+
+
+
+
+
+             //,[
              //   'icon' => \pm_Context::getBaseUrl() . 'icons/32/key.png',
              //   'title' => 'Enable/Disable',
              //   'description' => $status,
