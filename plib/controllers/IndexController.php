@@ -106,6 +106,11 @@ class IndexController extends pm_Controller_Action
                 'title' => 'Delete Domain',
                 'description' => 'Deletes a specific domain from SafeDNS',
                 'link' => pm_Context::getActionUrl('index/deleteadomain'),
+            ], [
+                'icon' => \pm_Context::getBaseUrl() . 'icons/32/orange-square-cross.png',
+                'title' => 'Clear all tasks',
+                'class' => 'sb-app-info',
+                'link' => pm_Context::getActionUrl('index', 'cancel-all-task'),
             ]
 
 
@@ -318,6 +323,26 @@ class IndexController extends pm_Controller_Action
         }
         $this->view->form = $form;
     }
+
+
+    public function cancelAllAction()
+    {
+        pm_Log::info('Try get tasks');
+        $tasks = $this->taskManager->getTasks(['task_succeed']);
+        $i = count($tasks) - 1;
+        while ($i >= 0) {
+            $this->taskManager->cancel($tasks[$i]);
+            $i--;
+        }
+        $this->_redirect('index/tools');
+    }
+
+    public function cancelAllTaskAction()
+    {
+        $this->taskManager->cancelAllTasks();
+        $this->_redirect('index/tools');
+    }
+
 
     public function getDomainInfo()
     {
