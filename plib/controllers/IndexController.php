@@ -43,11 +43,11 @@ class IndexController extends pm_Controller_Action
         } elseif ($type == 'delete-a-domain') {
             $task=new Modules_SafednsPlesk_Task_DeleteADomain();
         }
-        $task->setParams([
-            'p1' => 1,
-            'p2' => 2,
-        ]);
-        $task->setParam('p3', 3);
+//        $task->setParams([
+//            'p1' => 1,
+//            'p2' => 2,
+//        ]);
+//        $task->setParam('p3', 3);
 
         if (isset($domain)) {
             $task->setParam('domainName', $domain->getName());
@@ -78,11 +78,17 @@ class IndexController extends pm_Controller_Action
             $toggle_link=pm_Settings::set('enabled','true');
         };
         pm_Settings::set('enabled',$originalsetting);								*/
+
+        if (pm_Settings::get('taskLock')) {
+            $taskLockStatus="taskLock is locked";
+        } else {
+            $taskLockStatus="taskLock is null";
+        }        
+
         $this->view->tools = [
             [
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/key.png',
                 'title' => 'Set API Key',
-
                 'description' => 'Set/Change API Key',
                 'link' => pm_Context::getActionUrl('index/apikeyform'),
             ], [
@@ -94,8 +100,7 @@ class IndexController extends pm_Controller_Action
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/refresh.png',
                 'title' => 'Sync Domain',
                 'description' => 'Sync a specific domains with SafeDNS',
-//                'link' => pm_Context::getActionUrl('index', 'add-task') . '/type/synchronise-a-domain',
-               'link' => pm_Context::getActionUrl('index/syncadomain'),
+                'link' => pm_Context::getActionUrl('index/syncadomain'),
             ],[
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/redalert.png',
                 'title' => 'Delete All',
@@ -109,9 +114,14 @@ class IndexController extends pm_Controller_Action
             ], [
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/orange-square-cross.png',
                 'title' => 'Clear all tasks',
-                'class' => 'sb-app-info',
+                'description' => 'Clear tasks in all states',
                 'link' => pm_Context::getActionUrl('index', 'cancel-all-task'),
-            ]
+            ], [
+                'icon' => \pm_Context::getBaseUrl() . 'icons/32/green-ssl-padlock-ticked.png',
+                'title' => 'DEBUG taskLock Status',
+                'description' => $taskLockStatus,
+                'link' => pm_Context::getActionUrl('index'),
+            ]  
 
 
 
@@ -327,19 +337,23 @@ class IndexController extends pm_Controller_Action
 
     public function cancelAllAction()
     {
-        pm_Log::info('Try get tasks');
         $tasks = $this->taskManager->getTasks(['task_succeed']);
         $i = count($tasks) - 1;
         while ($i >= 0) {
             $this->taskManager->cancel($tasks[$i]);
             $i--;
         }
+        pm_Settings::set('taskLock',null);
+        $this->_status->addMessage('info', "cancelAll ");
+
         $this->_redirect('index/tools');
     }
 
     public function cancelAllTaskAction()
     {
         $this->taskManager->cancelAllTasks();
+        pm_Settings::set('taskLock',null);
+        $this->_status->addMessage('info', "cancelAllTask ");
         $this->_redirect('index/tools');
     }
 

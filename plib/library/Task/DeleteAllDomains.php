@@ -10,23 +10,26 @@ class Modules_SafednsPlesk_Task_DeleteAllDomains extends pm_LongTask_Task
 
     public function run()
     {
-//        pm_Log::info('Start method Run for Succeed.');
-//        pm_Log::info('p2 is ' . $this->getParam('p2'));
-//        pm_Log::info('p3 is ' . $this->getParam('p3'));
-//        pm_Log::info('domain name is ' . $this->getParam('domainName', 'none'));
-        $this->updateProgress(0);
-        pm_Log::info(self::$progressText . $this->getProgress());
-        sleep($this->sleep);
-        $this->updateProgress(20);
-        pm_Log::info(self::$progressText . $this->getProgress());
-        sleep($this->sleep);
-        $this->updateProgress(40);
-        pm_Log::info(self::$progressText . $this->getProgress());
-        sleep($this->sleep);
-        $this->updateProgress(60);
-        pm_Log::info(self::$progressText . $this->getProgress());
-        pm_Log::info('Status after 60% progress: ' . $this->getStatus());
-        sleep($this->sleep);
+        pm_Settings::set('taskLock','locked');
+        $domInfo = $this->getDomainInfo();
+        $list = $domInfo->webspace->get->result;
+        if ($list->status = 'ok') {
+            // Calculate how much % each action is worth. Set % to 0.
+            $pleskDomainCount = count($list);
+            $actionPercent=(100/$pleskDomainCount);
+            $currentPercent=0;
+            foreach ($list as $domain) {
+                if (isset($domain->data->gen_info->name)) {
+                    $pleskDomain=$domain->data->gen_info->name;
+                    pm_Settings::set('taskCurrentDeleteDomain',$pleskDomain);
+                    $this->updateProgress($currentPercent);
+                    sleep($this->sleep);
+                    $currentPercent=($currentPercent+$actionPercent);
+                }
+                $this->updateProgress(100);
+            }
+        }
+
     }
 
     public function statusMessage()
@@ -34,9 +37,9 @@ class Modules_SafednsPlesk_Task_DeleteAllDomains extends pm_LongTask_Task
         pm_Log::info('Start method statusMessage. ID: ' . $this->getId() . ' with status: ' . $this->getStatus());
         switch ($this->getStatus()) {
             case static::STATUS_RUNNING:
-//                return pm_Locale::lmsg('Syncronising All Domain');
                 pm_Settings::set('taskLock','locked');
-                return ('Running Task: Delete All Plesk Domains From SafeDNS');
+                $taskCurrentDeleteDomain=pm_Settings::get('taskCurrentDeleteDomain');
+                return "Deleting $taskCurrentDeleteDomain";
             case static::STATUS_DONE:
                 return ('Successful Task: Delete all Domains From SafeDNS');
             case static::STATUS_ERROR:
@@ -48,22 +51,28 @@ class Modules_SafednsPlesk_Task_DeleteAllDomains extends pm_LongTask_Task
     }
     public function onDone()
     {
+        pm_Settings::set('taskCurrentDeleteDomain',null);
         // Unlock the forms
         pm_Settings::set('taskLock',null);
     }
-
-/*    public function onStart()
+    public function getDomainInfo()
     {
-        pm_Log::info('Start method onStart');
-        pm_Log::info('p1 is ' . $this->getParam('p1'));
-        $this->setParam('onStart', 1);
+        $requestGet = <<<APICALL
+
+        <webspace>
+           <get>
+            <filter>
+            </filter>
+             <dataset>
+             <gen_info/>
+             </dataset>
+           </get>
+        </webspace>
+
+APICALL;
+        $responseGet = pm_ApiRpc::getService()->call($requestGet);
+        return $responseGet;
     }
 
-    public function onDone()
-    {
-        pm_Log::info('Start method onDone');
-        $this->setParam('onDone', 1);
-        pm_Log::info('End method onDone');
-        pm_Log::info('Status: ' . $this->getStatus());
-    }*/
+
 }

@@ -7,28 +7,30 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
     public $trackProgress = true;
     private $sleep = 1;
     private static $progressText = 'Progress is ';
-
     public function run()
     {
         pm_Settings::set('taskLock','locked');
+        $domInfo = $this->getDomainInfo();
+        $list = $domInfo->webspace->get->result;
+        if ($list->status = 'ok') {
+            // Calculate how much % each action is worth. Set % to 0.
+            $pleskDomainCount = count($list);
+            $actionPercent=(100/$pleskDomainCount);
+            $currentPercent=0;
+            foreach ($list as $domain) {
+                if (isset($domain->data->gen_info->name)) {
+                    $pleskDomain=$domain->data->gen_info->name;
+                    pm_Settings::set('taskCurrentDomain',$pleskDomain);
+                    $this->updateProgress($currentPercent);
+                    sleep($this->sleep);
+                    $currentPercent=($currentPercent+$actionPercent);                     
+                }
+                $this->updateProgress(100);
+            }
+        }
 
-//        pm_Log::info('Start method Run for Succeed.');
-//        pm_Log::info('p2 is ' . $this->getParam('p2'));
-//        pm_Log::info('p3 is ' . $this->getParam('p3'));
-//        pm_Log::info('domain name is ' . $this->getParam('domainName', 'none'));
-        $this->updateProgress(0);
-        pm_Log::info(self::$progressText . $this->getProgress());
-        sleep($this->sleep);
-        $this->updateProgress(20);
-        pm_Log::info(self::$progressText . $this->getProgress());
-        sleep($this->sleep);
-        $this->updateProgress(40);
-        pm_Log::info(self::$progressText . $this->getProgress());
-        sleep($this->sleep);
-        $this->updateProgress(60);
-        pm_Log::info(self::$progressText . $this->getProgress());
-        pm_Log::info('Status after 60% progress: ' . $this->getStatus());
-        sleep($this->sleep);
+
+        
     }
 
     public function statusMessage()
@@ -37,7 +39,9 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
         switch ($this->getStatus()) {
             case static::STATUS_RUNNING:
                 pm_Settings::set('taskLock','locked');
-                return ('Running Task: Sync All Domains With SafeDNS');
+//                return ('Running Task: Sync All Domains With SafeDNS');
+                $taskCurrentDomain=pm_Settings::get('taskCurrentDomain');
+                return "Synchronising $taskCurrentDomain";
             case static::STATUS_DONE:
                 return ('Successful Task: Sync All Domains With SafeDNS');
             case static::STATUS_ERROR:
@@ -51,8 +55,28 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
     }
     public function onDone()
     {
+        pm_Settings::set('taskCurrentDomain',null);
+
         // Unlock the forms
         pm_Settings::set('taskLock',null);
+    }
+    public function getDomainInfo()
+    {
+        $requestGet = <<<APICALL
+
+        <webspace>
+           <get>
+            <filter>
+            </filter>
+             <dataset>
+             <gen_info/>
+             </dataset>
+           </get>
+        </webspace>
+
+APICALL;
+        $responseGet = pm_ApiRpc::getService()->call($requestGet);
+        return $responseGet;
     }
 
 /*    public function onStart()
