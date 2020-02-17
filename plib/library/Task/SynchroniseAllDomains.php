@@ -1,16 +1,10 @@
 <?php
-   // Modules_SafednsPlesk_Task_SynchroniseDomains
-//class Modules_SafednsPlesk_Task_Succeed extends pm_LongTask_Task
 class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
 {
     const UID = 'synchronise-all-domains';
     public $trackProgress = true;
     private $sleep = 1;
     private static $progressText = 'Progress is ';
-//    fclose(STDOUT);
-//    fclose(STDERR);
-//    $STDOUT = fopen('/var/log/safednsapi-plesk-application.log', 'wb');
-//    $STDERR = fopen('/var/log/safednsapi-plesk-error.log', 'wb');
 
     private function request_safedns_zones($api_url){
         $get_data = $this->SafeDNS_API_Call('GET',$api_url."/zones?per_page=50",false);
@@ -68,8 +62,8 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
           $postdata = array(
               'name' => $input_zone,
           );
-          echo "Create Zone API Call:\n  URL:"; echo $api_url."/zones/";
-          echo "\nPostdata:\n";print_r($postdata);
+//          echo "Create Zone API Call:\n  URL:"; echo $api_url."/zones/";
+//          echo "\nPostdata:\n";print_r($postdata);
          
           $this->SafeDNS_API_Call('POST',$api_url."/zones/", json_encode($postdata));
           }
@@ -569,9 +563,10 @@ APICALL;
                     $url = sprintf("%s?%s", $url, http_build_query($data));
         }
         // OPTIONS:
+        $api_key=pm_Settings::get('api_key');
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-            'Authorization: oJAs5AIifPxZ28pTPSC8x2uRV2EPrTgO',
+            "Authorization: $api_key",
             'Content-Type: application/json',
         ));
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);

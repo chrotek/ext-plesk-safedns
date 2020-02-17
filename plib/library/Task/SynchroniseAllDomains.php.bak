@@ -296,15 +296,19 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
 
     public function get_plesk_records_for_domain($plesk_domain) {
         // TO DO - Do this with plesk's extensions API instead
-     //   echo "Listing Plesk Records for";echo $plesk_domain;echo "\n";
+        echo "Listing Plesk Records for";echo $plesk_domain;echo "\n";
 
         $plesk_records_for_domain_x = (shell_exec('plesk bin dns --info '.$plesk_domain.'| grep -v "SUCCESS: Getting information for Domain"'));
+
+        echo "plesk records for domains : $plesk_records_for_domain_x";
         global $plesk_domain_records_array;
         $plesk_domain_records_array=[];
         
         echo "plesk records \n ";
         echo var_dump($plesk_records_for_domainx);
         $plesk_records_for_domain_y = explode("\n",$plesk_records_for_domain_x);
+        echo "\nplesk_records_for_domain_y\n";
+        echo var_dump($plesk_records_for_domain_y);
     // for($i = 0; $i < 10000; ++$i) {}
         $ii=0;
         for($i = 0; $i < (count($plesk_records_for_domain_y)+1); ++$i){
@@ -313,12 +317,12 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
     //                echo "\n|||||||||||||||||||||||||||||||\n";
                     $exploded_plesk_records_for_domain_y=explode(" ",$plesk_records_for_domain_y[$i]);
     //                echo $ii.": ";
-    //                echo "Full Record: ".$plesk_records_for_domain_y[$i]."\n";
-    //                echo "Elements in array: ";
-    //                echo count($exploded_plesk_records_for_domain_y)."\n";
-    //                echo "Exploded0 Name ; ";
+                    echo "Full Record: ".$plesk_records_for_domain_y[$i]."\n";
+                    echo "Elements in array: ";
+                    echo count($exploded_plesk_records_for_domain_y)."\n";
+//                    echo "Exploded0 Name ; ";
                     $plesk_record_name=$exploded_plesk_records_for_domain_y[0];
-    //                echo $plesk_record_name;
+//                    echo $plesk_record_name;
                     // SPF Records have spaces in the content, so we can't just break the record down based on spaces.
                     // Instead, we'll remove elements from the array as we go, and then when just the content is left, we'll convert the array back to a string.
                     unset($exploded_plesk_records_for_domain_y[0]);
@@ -341,11 +345,19 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
                     // If we need an index, $ii can be used. $i is not valid anymore, because we've ignored the blank keys
                     ++$ii;
                     $plesk_record_content=ltrim($plesk_record_contentx," ");
+                    echo "plesk_domain_records_array[]";
+                    echo "$plesk_record_name , $plesk_record_type , $plesk_record_priority , $plesk_record_content";
                     $plesk_domain_records_array[]=($plesk_record_name.",".$plesk_record_type.",".$plesk_record_priority.",".$plesk_record_content);
+                    echo "\nplesk_domain_records_array foREALS ";
+                    print_r($plesk_domain_records_array);
+                    echo "\n";
                 }
             }
         }
-        return  $plesk_domain_records_array;
+        echo "Returning: \n";
+        print_r($plesk_domain_records_array);
+//        return  $plesk_domain_records_array;
+        pm_Settings::set('plesk_synchronise_all_domain_current_record_array',json_encode($plesk_domain_records_array));
     //    foreach
     //    echo "\n------------------------\n--------
     }
@@ -377,7 +389,6 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
                 if (isset($domain->data->gen_info->name)) {
 //                    $plesk_domain=$domain->data->gen_info->name;
                     $plesk_domain=(string)$domain->data->gen_info->name;
-
                     echo "Plesk domain $plesk_domain \n"; // debug
                     pm_Settings::set('taskCurrentDomain',$plesk_domain);
                     $this->updateProgress($currentPercent);
@@ -388,7 +399,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
 //                    echo "safedns domains: \n " ; echo var_dump($safedns_domains); echo "\n";
                     echo "Check Create zone\n";
                     $this->check_create_zone($api_url,$safedns_domains,$plesk_domain);
-/*                    
+                    
 //////////////////////////////////////
 
                     $safedns_records_arrayx=json_encode($safedns_records_array);
@@ -397,14 +408,21 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
 //        global $safedns_records_array;
 //        request_safedns_record_for_zone($api_url,$plesk_domain);
 //    }
+                    $this->get_plesk_records_for_domain($plesk_domain);
+                    $plesk_domain_records_array=json_decode(pm_Settings::get('plesk_synchronise_all_domain_current_record_array'));
                     global $safedns_records_array;
                     $this->request_safedns_record_for_zone($api_url,$plesk_domain);
-//    echo "SAFEDNS RECORDS ARRAY\n$api_url\n";
-//    echo var_dump($safedns_records_array);
+                    echo "SAFEDNS RECORDS ARRAY\n  api_url $api_url\n";
+                    echo var_dump($safedns_records_array);
+                    echo "-__-__-__-__-__-__-__-__-__-__-__-\n";
+
+
+
+                     echo "VARDUMP plesk_domain_records_array";
+                    echo var_dump($plesk_domain_records_array);
                     foreach ($plesk_domain_records_array as $plesk_domain_current_record) {
-//        echo "Current Record: ".var_dump($plesk_domain_current_record);
+                        echo "foreach plesk_domain_records_array";
                         $plesk_domain_current_record_array=explode(",",$plesk_domain_current_record);
-//        echo "Current Record Array: ";echo var_dump($plesk_domain_current_record_array);
                         $plesk_record_name=rtrim($plesk_domain_current_record_array[0], ".");
                         $plesk_record_type=rtrim($plesk_domain_current_record_array[1], ".");
                         $plesk_record_priority=rtrim($plesk_domain_current_record_array[2], ".");
@@ -416,9 +434,10 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
 //        echo "\nPriority: "; echo $plesk_record_priority;
 
                         global $test_result_array;
+                        echo "Finding matching record for : \n$api_url \n$plesk_domain \n$plesk_record_name  \n$plesk_record_type  \n$plesk_record_content  \n$plesk_record_priority "; 
                         $this->find_matching_record_safedns($api_url,$plesk_domain,$plesk_record_name,$plesk_record_type,$plesk_record_content,$plesk_record_priority,$safedns_records_array);
 
-//        echo "Test result is: ".var_dump($test_result_array);
+                        echo "Test result is: ".var_dump($test_result_array);
                         if (strcasecmp($test_result_array['testResult'], 'FullMatch') == 0) {
 //            echo "Record already Exists, No changes nescessary : id- ".$test_result_array['recordID']."zone- ".$plesk_domain." name- ".$plesk_record_name." type- ".$plesk_record_type." content- ".$plesk_record_content."\n";
 // ?? ;
@@ -461,7 +480,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
 //    echo "Checking if anything needs to be deleted from safedns \n";
                     $this->delete_plesk_missing_record_from_safedns($api_url,$plesk_domain,$plesk_domain_records_array,$safedns_records_array);
 
-//\\\\\\\\\\\\\\                \\\\\\\\\\\\\\\\\\**/
+//\\\\\\\\\\\\\\                \\\\\\\\\\\\\\\\\\
 //////////////////////////////////
                 }
             }
