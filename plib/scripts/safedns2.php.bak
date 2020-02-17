@@ -188,7 +188,7 @@ function request_safedns_record_for_zone($api_url,$zone_name){
     $get_data = SafeDNS_API_Call('GET',$api_url."/zones/".$zone_name."/records?per_page=50",false);
     $response = json_decode($get_data, true);
     $data = $response;
-    echo "request_safedns_record_for_zone $zone_name. \n Data: \n".$data;
+//    echo "request_safedns_record_for_zone $zone_name. \n Data: \n".$data;
     global $safedns_records_array;
     $safedns_records_array = array();
 //    echo var_dump($data);
@@ -257,6 +257,10 @@ function find_matching_record_safedns($api_url,$zone_name,$record_name,$record_t
     $testResult = 'NoMatch';
     $recordID = 'Null';
     global $test_result_array;
+//    echo "\n\nComparing Records\nPlesk\n";
+//    echo "Plesk Domain: $plesk_domain \n Plesk Record Name: $record_name \n Plesk Record Type: $record_type \n Plesk Record Content: $record_content \n Plesk Record Priority: $plesk_record_opt\n\n";
+//    echo " Safedns Array: "; echo var_dump($safedns_records_array)." \n ";
+
 //    echo "ARRAY123".var_dump($safedns_records_array)."\n";
     foreach ($safedns_records_array as $safedns_recordx) {
         $safedns_record=explode(",",$safedns_recordx);
@@ -287,7 +291,7 @@ function find_matching_record_safedns($api_url,$zone_name,$record_name,$record_t
                 $recordID = $safedns_record[0];
                 // If TXT Record, add quotes for safedns reqs, and Find Match for Record Content
                 if(strcasecmp($safedns_record[2] , 'TXT') == 0){
-                    if(strcasecmp(rtrim($safedns_record[3], ".") , '"'.rtrim($record_content.'"', ".")) == 0){
+                    if(strcasecmp(rtrim($safedns_record[3], ".") , '"'.rtrim($record_content, ".").'"') == 0){
 //                        echo "MX Matched";
                         $testResult = 'FullMatch';
                         $recordID = $safedns_record[0];
@@ -327,7 +331,7 @@ function find_matching_record_safedns($api_url,$zone_name,$record_name,$record_t
 function delete_plesk_missing_record_from_safedns($api_url,$zone_name,$pleskrecords,$safedns_records_array) {
         $safedns_records_arrayx=json_encode($safedns_records_array);
         if (strcasecmp($safedns_records_arrayx, 'NULL') == 0) {
-        echo "Records Array DOESNT Exist! Retrieving.\n";
+//            echo "Records Array DOESNT Exist! Retrieving.\n";
             global $safedns_records_array;
             request_safedns_record_for_zone($api_url,$zone_name);
         }
@@ -338,18 +342,22 @@ function delete_plesk_missing_record_from_safedns($api_url,$zone_name,$pleskreco
             $testresult= "NoMatch";
 //            echo " Matching Safedns Record: "; echo var_dump($safedns_record);
             // For record in plesk , if exists on SafeDNS, Match
-            foreach ($pleskrecords as $plesk_domain_current_record_array) {
+            foreach ($pleskrecords as $plesk_domain_current_record_arrayx) {
+                $plesk_domain_current_record_array=explode(",",$plesk_domain_current_record_arrayx);
                 $plesk_record_name=rtrim($plesk_domain_current_record_array[0], ".");
                 $plesk_record_type=rtrim($plesk_domain_current_record_array[1], ".");
                 $plesk_record_priority=rtrim($plesk_domain_current_record_array[2], ".");
                 $plesk_record_content=rtrim($plesk_domain_current_record_array[3], ".");
-
+ //               echo "Delete CHECK NAME: ".$plesk_record_name."\n";
+ //               echo "Delete CHECK TYPE: ".$plesk_record_type."\n";
+ //               echo "Delete CHECK PRIORITY: ".$plesk_record_priority."\n";
+ //               echo "Delete CHECK CONTENT: ".$plesk_record_content."\n";
                 if (strcasecmp($safedns_record[1], rtrim($plesk_record_name, ".")) == 0) {
 //                    echo "Delete function - Matched name";
                     if (strcasecmp($safedns_record[2], $plesk_record_type) == 0) {
 //                        echo "Delete function - Matched type";
                         $testresult= "NameTypeMatch";
-                        break;
+          //              break;
                     }
                 }
             }
@@ -448,8 +456,6 @@ function get_plesk_records_for_domain($plesk_domain) {
 //    echo "Type: ";
 //    echo var_dump(gettype($plesk_records_for_domainx));
     $plesk_records_for_domain_y = explode("\n",$plesk_records_for_domain_x);
-    echo var_dump(count($plesk_records_for_domain_y));
-    echo "\n";
 // for($i = 0; $i < 10000; ++$i) {}
     $ii=0;
     for($i = 0; $i < (count($plesk_records_for_domain_y)+1); ++$i){
@@ -481,10 +487,11 @@ function get_plesk_records_for_domain($plesk_domain) {
 //                echo "\nPriority: ".$plesk_record_priority;
                 // We should only have the content left in the array, so implode it.
 //                echo "\nContent ; ";
-                $plesk_record_content=implode(" ",$exploded_plesk_records_for_domain_y);
+                $plesk_record_contentx=implode(" ",$exploded_plesk_records_for_domain_y);
 //                echo $plesk_record_content;
                 // If we need an index, $ii can be used. $i is not valid anymore, because we've ignored the blank keys
                 ++$ii;
+                $plesk_record_content=ltrim($plesk_record_contentx," ");
                 $plesk_domain_records_array[]=($plesk_record_name.",".$plesk_record_type.",".$plesk_record_priority.",".$plesk_record_content);
             }
         }
@@ -520,13 +527,14 @@ request_safedns_zones($api_url);
 // For records in plesk zone, create/update in safedns:
 get_plesk_domains();
 foreach ($plesk_domains as $plesk_domain){
+    echo "----- Syncronising zone $plesk_domain with safedns -----\n";
     check_create_zone($api_url,$safedns_domains,$plesk_domain);
     $record_changed=False;
     $rrCount=0;
     
     // For records in plesk zone, create/update in safedns:
     get_plesk_records_for_domain($plesk_domain);
-    echo "Domain= ".$plesk_domain."\n";
+//    echo "Domain= ".$plesk_domain."\n";
 
     $safedns_records_arrayx=json_encode($safedns_records_array);
 //    if (strcasecmp($safedns_records_arrayx, 'NULL') == 0) {
@@ -536,30 +544,38 @@ foreach ($plesk_domains as $plesk_domain){
 //    }
     global $safedns_records_array;
     request_safedns_record_for_zone($api_url,$plesk_domain);
-    echo "SAFEDNS RECORDS ARRAY\n$api_url\n";
-    echo var_dump($safedns_records_array);
+//    echo "SAFEDNS RECORDS ARRAY\n$api_url\n";
+//    echo var_dump($safedns_records_array);
     foreach ($plesk_domain_records_array as $plesk_domain_current_record) {
-        echo "Current Record: ".var_dump($plesk_domain_current_record);
+//        echo "Current Record: ".var_dump($plesk_domain_current_record);
         $plesk_domain_current_record_array=explode(",",$plesk_domain_current_record);
-        echo "Current Record Array: ";echo var_dump($plesk_domain_current_record_array);
+//        echo "Current Record Array: ";echo var_dump($plesk_domain_current_record_array);
         $plesk_record_name=rtrim($plesk_domain_current_record_array[0], ".");
         $plesk_record_type=rtrim($plesk_domain_current_record_array[1], ".");
         $plesk_record_priority=rtrim($plesk_domain_current_record_array[2], ".");
         $plesk_record_content=rtrim($plesk_domain_current_record_array[3], ".");
 
-        echo "Name: "; echo $plesk_record_name;
-        echo "\nType: "; echo $plesk_record_type;
-        echo "\nContent: "; echo $plesk_record_content;
-        echo "\nPriority: "; echo $plesk_record_priority;
+//        echo "Name: "; echo $plesk_record_name;
+//        echo "\nType: "; echo $plesk_record_type;
+//        echo "\nContent: "; echo $plesk_record_content;
+//        echo "\nPriority: "; echo $plesk_record_priority;
 
         global $test_result_array;
+   
+//        echo "\n\nComparing Records\nPlesk\n";
+//        echo "Plesk Domain: $plesk_domain \n Plesk Record Name: $plesk_record_name \n Plesk Record Type: $plesk_record_type \n Plesk Record Content: $plesk_record_content \n Plesk Record Priority: $plesk_record_priority\n\n";
+//        echo " Safedns Array: "; echo var_dump($safedns_records_array)." \n ";
+               
+
+
 
         global $test_result_array;
         find_matching_record_safedns($api_url,$plesk_domain,$plesk_record_name,$plesk_record_type,$plesk_record_content,$plesk_record_priority,$safedns_records_array);
 
-        echo "Test result is: ".var_dump($test_result_array);
+//        echo "Test result is: ".var_dump($test_result_array);
         if (strcasecmp($test_result_array['testResult'], 'FullMatch') == 0) {
-//            echo "Record already Exists, No changes nescessary : id- ".$test_result_array['recordID']."zone- ".$data['zone']['name']." name- ".$variablerr['host']." type- ".$variablerr['type']." content- ".$variablerr['value']."\n";
+//            echo "Record already Exists, No changes nescessary : id- ".$test_result_array['recordID']."zone- ".$plesk_domain." name- ".$plesk_record_name." type- ".$plesk_record_type." content- ".$plesk_record_content."\n";
+;
             //continue 2;
 
     //     - Check if record is present in safedns , but content has changed. (Match NAME and TYPE)
@@ -575,9 +591,11 @@ foreach ($plesk_domains as $plesk_domain){
             $postdata = array(
                 'name' => $plesk_record_name,
                 'type' => $$plesk_record_type,
-                'content' => $plesk_record_priority); 
+                'content' => $plesk_record_content); 
             }
             $record_changed=True;
+//            echo "PATCHING RECORD WITH: \nURL:$api_url/zones/$plesk_domain/records/".$test_result_array['recordID'];
+//            echo "\nPostData:\n"; echo var_dump($postdata);
             SafeDNS_API_Call('PATCH',$api_url."/zones/".$plesk_domain."/records/".$test_result_array['recordID'], json_encode($postdata));
             //continue 2;
         } elseif (strcasecmp($test_result_array['testResult'], 'IncompatibleType') == 0) {
@@ -596,7 +614,7 @@ foreach ($plesk_domains as $plesk_domain){
         echo "No Records Created or Updated\n";
     }
     //     - For records in safedns, If record is not present in plesk, delete it from SafeDNS.
-    echo "Checking if anything needs to be deleted from safedns \n";
+//    echo "Checking if anything needs to be deleted from safedns \n";
     delete_plesk_missing_record_from_safedns($api_url,$plesk_domain,$plesk_domain_records_array,$safedns_records_array);
     //     -
 

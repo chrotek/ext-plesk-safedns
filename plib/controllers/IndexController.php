@@ -7,7 +7,6 @@ class IndexController extends pm_Controller_Action
     private $taskManager = NULL;
     protected $_accessLevel = 'admin';
     protected $_api_key = '--------------------';
-
     public function init()
     {
         parent::init();
