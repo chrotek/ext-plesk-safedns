@@ -1,6 +1,6 @@
 <?php
 // Copyright 1999-2016. Parallels IP Holdings GmbH.
-$module_name="safedns_plesk";
+$module_name="safedns-plesk";
 try {
 
     $script = "plesk bin extension --exec $module_name safedns.php";
