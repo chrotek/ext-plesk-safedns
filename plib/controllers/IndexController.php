@@ -251,27 +251,15 @@ class IndexController extends pm_Controller_Action
             'label' => 'Select domain',
             'multiOptions' => $domainSelector,
         ]);
-//        $form->addElement('SimpleText', 'text', [
-//            'value' => 'Selected domain: ' . $form->getValue('$domain'),
-//        ]);
-
 //        $form->addControlButtons(['cancelLink' => pm_Context::getBaseUrl(),]);
         $form->addControlButtons(['sendTitle' => 'Synchronise Domain' ,'cancelLink' => pm_Context::getBaseUrl(),]);
 
 
         // Process the form - syncronise records for a specific domain
         if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
-//            if ($form->getValue('api_key')) {
-//                $this->_api_key = $form->getValue('api_key');
-           // }
-
-//            pm_Settings::set('api_key', $this->_api_key);
-
-//            $this->_status->addMessage('info', $this->lmsg('message_success'));
-            pm_Settings::set('selectedDomain', "NO DOMAIN SELECTED");
-            pm_Settings::set('selectedDomain', $form->getValue('selectedDomain'));
-            $this->_status->addMessage('info', "Requested Domain Sync ".pm_Settings::get('selectedDomain'));
-//            }
+//            pm_Settings::set('selectedDomainSychronise', "NO DOMAIN SELECTED");
+            pm_Settings::set('selectedDomainSychronise', $form->getValue('selectedDomain'));
+            $this->_status->addMessage('info', "Requested Domain Sync ".pm_Settings::get('selectedDomainSychronise'));
             $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/synchronise-a-domain')]);
         }
         $this->view->form = $form;
@@ -317,16 +305,9 @@ class IndexController extends pm_Controller_Action
 
         // Process the form - syncronise records for a specific domain
         if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
-//            if ($form->getValue('api_key')) {
-//                $this->_api_key = $form->getValue('api_key');
-           // }
-
-//            pm_Settings::set('api_key', $this->_api_key);
-
-//            $this->_status->addMessage('info', $this->lmsg('message_success'));
-            pm_Settings::set('selectedDomain', "NO DOMAIN SELECTED");
-            pm_Settings::set('selectedDomain', $form->getValue('selectedDomain'));
-            $this->_status->addMessage('info', "Requested Domain Delete ".pm_Settings::get('selectedDomain'));
+            //pm_Settings::set('selectedDomain', "NO DOMAIN SELECTED");
+            pm_Settings::set('selectedDomainDelete', $form->getValue('selectedDomain'));
+            $this->_status->addMessage('info', "Requested Domain Delete ".pm_Settings::get('selectedDomainDelete'));
 //            }
             $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/delete-a-domain')]);
         }
