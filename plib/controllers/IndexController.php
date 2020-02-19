@@ -41,6 +41,8 @@ class IndexController extends pm_Controller_Action
             $task=new Modules_SafednsPlesk_Task_DeleteAllDomains();
         } elseif ($type == 'delete-a-domain') {
             $task=new Modules_SafednsPlesk_Task_DeleteADomain();
+        } elseif ($type == 'test-api-key') {
+            $task=new Modules_SafednsPlesk_Task_TestApiKey();
         }
 //        $task->setParams([
 //            'p1' => 1,
@@ -115,13 +117,20 @@ class IndexController extends pm_Controller_Action
                 'title' => 'Clear all tasks',
                 'description' => 'Clear tasks in all states',
                 'link' => pm_Context::getActionUrl('index', 'cancel-all-task'),
-            ], [
+            ]
+/*, [
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/green-ssl-padlock-ticked.png',
                 'title' => 'DEBUG taskLock Status',
                 'description' => $taskLockStatus,
                 'link' => pm_Context::getActionUrl('index'),
-            ]  
+            ], [
+                'icon' => \pm_Context::getBaseUrl() . 'icons/32/redalert.png',
+                'title' => 'Test API Key',
+                'description' => $taskLockStatus,
+                'link' => pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key',
 
+            ]
+*/
 
 
 
@@ -215,7 +224,8 @@ class IndexController extends pm_Controller_Action
 
 //            $this->_status->addMessage('info', $this->lmsg('message_success'));
             $this->_status->addMessage('info', 'API Key Saved');
-            $this->_helper->json(['redirect' => pm_Context::getBaseUrl()]);
+//            $this->_helper->json(['redirect' => pm_Context::getBaseUrl()]);
+              $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key')]);
         }
         $this->view->form = $form;
     }

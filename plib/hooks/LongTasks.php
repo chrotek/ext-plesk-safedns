@@ -15,6 +15,7 @@ class Modules_SafednsPlesk_LongTasks extends pm_Hook_LongTasks
             new Modules_SafednsPlesk_Task_SynchroniseADomain(), 
             new Modules_SafednsPlesk_Task_DeleteAllDomains(),
             new Modules_SafednsPlesk_Task_DeleteADomain(),
+            new Modules_SafednsPlesk_Task_TestApiKey(),
         ];
     }
 }

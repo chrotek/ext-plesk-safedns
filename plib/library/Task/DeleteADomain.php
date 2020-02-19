@@ -3,7 +3,7 @@
 //class Modules_SafednsPlesk_Task_Succeed extends pm_LongTask_Task
 class Modules_SafednsPlesk_Task_DeleteADomain extends pm_LongTask_Task
 {
-    const UID = 'synchronise-a-domain';
+    const UID = 'delete-a-domain';
     public $trackProgress = true;
     private $sleep = 3;
     private static $progressText = 'Progress is ';
