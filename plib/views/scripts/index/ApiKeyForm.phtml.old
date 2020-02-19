@@ -1,4 +1,0 @@
-<?php
-echo $this->output_description;
-echo $this->form; 
-?>

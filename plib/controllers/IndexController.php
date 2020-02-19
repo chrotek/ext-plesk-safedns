@@ -14,8 +14,6 @@ class IndexController extends pm_Controller_Action
             $this->taskManager = new pm_LongTask_Manager();
         }
 
-        // Init title for all actions
-//        $this->view->pageTitle = $this->lmsg('page_title');
         $this->view->pageTitle = 'SafeDNS Plesk Integration';
     }
 
@@ -29,7 +27,13 @@ class IndexController extends pm_Controller_Action
 //        $task = $type === 'succeed'
 //            ? new Modules_SafednsPlesk_Task_Succeed()
 //            : new Modules_SafednsPlesk_Task_Fail();
-        if ($type == 'succeed') {
+        if (pm_Settings::get('taskLock')) {
+            $task=new Modules_SafednsPlesk_Task_TaskLocked();
+        } elseif ($type == 'test-api-key') {
+            $task=new Modules_SafednsPlesk_Task_TestApiKey();
+        } elseif (!pm_Settings::get('validKey')) {
+            $task=new Modules_SafednsPlesk_Task_InvalidKey();
+        } elseif ($type == 'succeed') {
             $task=new Modules_SafednsPlesk_Task_Succeed();
         } elseif ($type == 'fail') {
             $task=new Modules_SafednsPlesk_Task_Fail();
@@ -41,8 +45,6 @@ class IndexController extends pm_Controller_Action
             $task=new Modules_SafednsPlesk_Task_DeleteAllDomains();
         } elseif ($type == 'delete-a-domain') {
             $task=new Modules_SafednsPlesk_Task_DeleteADomain();
-        } elseif ($type == 'test-api-key') {
-            $task=new Modules_SafednsPlesk_Task_TestApiKey();
         }
 //        $task->setParams([
 //            'p1' => 1,
@@ -79,13 +81,20 @@ class IndexController extends pm_Controller_Action
             $toggle_link=pm_Settings::set('enabled','true');
         };
         pm_Settings::set('enabled',$originalsetting);								*/
+        // Init form here
+/*        if (pm_Settings::get('taskLock')) {
+            $form = new pm_Form_Simple();
+            $this->_redirect('index');
+            $this->_status->addMessage('warning', 'Please wait for current task to finish');
+            $this->view->form = $form;
+        }
 
         if (pm_Settings::get('taskLock')) {
             $taskLockStatus="taskLock is locked";
         } else {
             $taskLockStatus="taskLock is null";
         }        
-
+*/
         $this->view->tools = [
             [
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/key.png',
@@ -168,6 +177,10 @@ class IndexController extends pm_Controller_Action
 //            'title' => $this->lmsg('indexPageTitle'),
             'title' => 'SafeDNS Integration Configuration',
             'action' => 'index',
+        ];
+        $tabs[] = [
+            'title' => 'Tools',
+            'action' => 'tools',
         ];
 //        if (pm_Settings::get('enabled')) {
 //            $tabs[] = [
@@ -323,7 +336,6 @@ class IndexController extends pm_Controller_Action
         }
         $this->view->form = $form;
     }
-
 
     public function cancelAllAction()
     {
