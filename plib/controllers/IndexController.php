@@ -175,13 +175,18 @@ class IndexController extends pm_Controller_Action
         $tabs = [];
         $tabs[] = [
 //            'title' => $this->lmsg('indexPageTitle'),
-            'title' => 'SafeDNS Integration Configuration',
-            'action' => 'index',
+            'title' => 'Welcome Page',
+            'action' => 'welcome',
         ];
         $tabs[] = [
-            'title' => 'Tools',
+            'title' => 'Manage DNS Zones',
+            'action' => 'manageZones',
+        ];
+        $tabs[] = [
+            'title' => 'Tools & Settings',
             'action' => 'tools',
         ];
+
 //        if (pm_Settings::get('enabled')) {
 //            $tabs[] = [
 //                'title' => $this->lmsg('delegationSetTitle'),
@@ -203,9 +208,28 @@ class IndexController extends pm_Controller_Action
     public function indexAction()
     {
         // Default action is formAction
-        $this->_forward('tools');
+        $this->_forward('welcome');
+
+
+    }
+    public function welcomeAction() {
+//        $this->view->tools = [
+//        ];
+
+        $form = new pm_Form_Simple();
+        $form->addElement('SimpleText', 'text', [
+            'value' => 'Count of global failed tasks:<br> 
+                        Next line of text',
+        ]);
+        $this->view->form = $form;
+        $this->view->tabs = $this->_getTabs();
     }
 
+    public function managezonesAction() {
+        $this->view->tools = [
+        ];
+        $this->view->tabs = $this->_getTabs();
+    }
     public function apikeyformAction()
 
     {
