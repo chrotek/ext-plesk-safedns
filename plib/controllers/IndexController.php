@@ -14,8 +14,6 @@ class IndexController extends pm_Controller_Action
             $this->taskManager = new pm_LongTask_Manager();
         }
 
-        // Init title for all actions
-//        $this->view->pageTitle = $this->lmsg('page_title');
         $this->view->pageTitle = 'SafeDNS Plesk Integration';
     }
 
@@ -29,7 +27,13 @@ class IndexController extends pm_Controller_Action
 //        $task = $type === 'succeed'
 //            ? new Modules_SafednsPlesk_Task_Succeed()
 //            : new Modules_SafednsPlesk_Task_Fail();
-        if ($type == 'succeed') {
+        if (pm_Settings::get('taskLock')) {
+            $task=new Modules_SafednsPlesk_Task_TaskLocked();
+        } elseif ($type == 'test-api-key') {
+            $task=new Modules_SafednsPlesk_Task_TestApiKey();
+        } elseif (!pm_Settings::get('validKey')) {
+            $task=new Modules_SafednsPlesk_Task_InvalidKey();
+        } elseif ($type == 'succeed') {
             $task=new Modules_SafednsPlesk_Task_Succeed();
         } elseif ($type == 'fail') {
             $task=new Modules_SafednsPlesk_Task_Fail();
@@ -77,13 +81,20 @@ class IndexController extends pm_Controller_Action
             $toggle_link=pm_Settings::set('enabled','true');
         };
         pm_Settings::set('enabled',$originalsetting);								*/
+        // Init form here
+/*        if (pm_Settings::get('taskLock')) {
+            $form = new pm_Form_Simple();
+            $this->_redirect('index');
+            $this->_status->addMessage('warning', 'Please wait for current task to finish');
+            $this->view->form = $form;
+        }
 
         if (pm_Settings::get('taskLock')) {
             $taskLockStatus="taskLock is locked";
         } else {
             $taskLockStatus="taskLock is null";
         }        
-
+*/
         $this->view->tools = [
             [
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/key.png',
@@ -115,13 +126,20 @@ class IndexController extends pm_Controller_Action
                 'title' => 'Clear all tasks',
                 'description' => 'Clear tasks in all states',
                 'link' => pm_Context::getActionUrl('index', 'cancel-all-task'),
-            ], [
+            ]
+/*, [
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/green-ssl-padlock-ticked.png',
                 'title' => 'DEBUG taskLock Status',
                 'description' => $taskLockStatus,
                 'link' => pm_Context::getActionUrl('index'),
-            ]  
+            ], [
+                'icon' => \pm_Context::getBaseUrl() . 'icons/32/redalert.png',
+                'title' => 'Test API Key',
+                'description' => $taskLockStatus,
+                'link' => pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key',
 
+            ]
+*/
 
 
 
@@ -159,6 +177,10 @@ class IndexController extends pm_Controller_Action
 //            'title' => $this->lmsg('indexPageTitle'),
             'title' => 'SafeDNS Integration Configuration',
             'action' => 'index',
+        ];
+        $tabs[] = [
+            'title' => 'Tools',
+            'action' => 'tools',
         ];
 //        if (pm_Settings::get('enabled')) {
 //            $tabs[] = [
@@ -215,7 +237,8 @@ class IndexController extends pm_Controller_Action
 
 //            $this->_status->addMessage('info', $this->lmsg('message_success'));
             $this->_status->addMessage('info', 'API Key Saved');
-            $this->_helper->json(['redirect' => pm_Context::getBaseUrl()]);
+//            $this->_helper->json(['redirect' => pm_Context::getBaseUrl()]);
+              $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key')]);
         }
         $this->view->form = $form;
     }
@@ -251,27 +274,15 @@ class IndexController extends pm_Controller_Action
             'label' => 'Select domain',
             'multiOptions' => $domainSelector,
         ]);
-//        $form->addElement('SimpleText', 'text', [
-//            'value' => 'Selected domain: ' . $form->getValue('$domain'),
-//        ]);
-
 //        $form->addControlButtons(['cancelLink' => pm_Context::getBaseUrl(),]);
         $form->addControlButtons(['sendTitle' => 'Synchronise Domain' ,'cancelLink' => pm_Context::getBaseUrl(),]);
 
 
         // Process the form - syncronise records for a specific domain
         if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
-//            if ($form->getValue('api_key')) {
-//                $this->_api_key = $form->getValue('api_key');
-           // }
-
-//            pm_Settings::set('api_key', $this->_api_key);
-
-//            $this->_status->addMessage('info', $this->lmsg('message_success'));
-            pm_Settings::set('selectedDomain', "NO DOMAIN SELECTED");
-            pm_Settings::set('selectedDomain', $form->getValue('selectedDomain'));
-            $this->_status->addMessage('info', "Requested Domain Sync ".pm_Settings::get('selectedDomain'));
-//            }
+//            pm_Settings::set('selectedDomainSychronise', "NO DOMAIN SELECTED");
+            pm_Settings::set('selectedDomainSychronise', $form->getValue('selectedDomain'));
+            $this->_status->addMessage('info', "Requested Domain Sync ".pm_Settings::get('selectedDomainSychronise'));
             $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/synchronise-a-domain')]);
         }
         $this->view->form = $form;
@@ -317,22 +328,14 @@ class IndexController extends pm_Controller_Action
 
         // Process the form - syncronise records for a specific domain
         if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
-//            if ($form->getValue('api_key')) {
-//                $this->_api_key = $form->getValue('api_key');
-           // }
-
-//            pm_Settings::set('api_key', $this->_api_key);
-
-//            $this->_status->addMessage('info', $this->lmsg('message_success'));
-            pm_Settings::set('selectedDomain', "NO DOMAIN SELECTED");
-            pm_Settings::set('selectedDomain', $form->getValue('selectedDomain'));
-            $this->_status->addMessage('info', "Requested Domain Delete ".pm_Settings::get('selectedDomain'));
+            //pm_Settings::set('selectedDomain', "NO DOMAIN SELECTED");
+            pm_Settings::set('selectedDomainDelete', $form->getValue('selectedDomain'));
+            $this->_status->addMessage('info', "Requested Domain Delete ".pm_Settings::get('selectedDomainDelete'));
 //            }
             $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/delete-a-domain')]);
         }
         $this->view->form = $form;
     }
-
 
     public function cancelAllAction()
     {

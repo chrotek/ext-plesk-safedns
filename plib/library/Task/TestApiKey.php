@@ -1,15 +1,15 @@
 <?php
    // Modules_SafednsPlesk_Task_SynchroniseDomains
 //class Modules_SafednsPlesk_Task_Succeed extends pm_LongTask_Task
-class Modules_SafednsPlesk_Task_DeleteADomain extends pm_LongTask_Task
+class Modules_SafednsPlesk_Task_TestApiKey extends pm_LongTask_Task
 {
-    const UID = 'delete-a-domain';
+    const UID = 'test-api-key';
     public $trackProgress = true;
     private $sleep = 3;
     private static $progressText = 'Progress is ';
     //public $domainName=var_dump(pm_Settings::get('selectedDomainDelete'));
 
-    public function SafeDNS_API_Call($method, $url, $data){
+    public function SafeDNS_API_Test($method, $url, $data){
         $curl = curl_init();
         switch ($method){
             case "POST":
@@ -67,28 +67,44 @@ class Modules_SafednsPlesk_Task_DeleteADomain extends pm_LongTask_Task
         curl_close($curl);
 
 
-        return $result;
+//        return $result;
+        pm_Settings::set('apiKeyTestResponseCode',$responsecode);
+//        return $responsecode;
     }
-
-
-
 
     public function run()
     {
-        $plesk_domain=pm_Settings::get('selectedDomainDelete');
         $api_url="https://api.ukfast.io/safedns/v1";
         ob_start();
         pm_Settings::set('taskLock','locked');
-        pm_Settings::set('taskCurrentDeleteDomain',$plesk_domain);
-        $this->updateProgress($currentPercent);
-        $currentPercent=($currentPercent+$actionPercent);
-        echo "DEL ZONE API CALL : $api_url/zones/$plesk_domain,false";
-        $this->SafeDNS_API_Call('DELETE',$api_url."/zones/".$plesk_domain,false);
+        echo "Testing API Key \n";
+        $this->SafeDNS_API_Test('GET',$api_url."/zones?per_page=50",false);
+        $apiTestResponse=pm_Settings::get('apiKeyTestResponseCode');
 
+        if(strcasecmp($apiTestResponse, '401') == 0){
+//            if(strcasecmp($responsecode, '204') != 0){
+            echo "\nResponse code : ".$apiTestResponse."\n";
+            pm_Settings::set('validKey',null);
+            $logfile='/testlog/safednsapi-tasks.log';
+            $contents = ob_get_flush();
+            file_put_contents($logfile,$contents);
+            throw new pm_Exception('API Key is not Valid. Response Code '.$apiTestResponse);
+        }
+
+        if(strcasecmp($apiTestResponse, '200') == 0){
+            pm_Settings::set('validKey','true');
+        } else {
+//            if(strcasecmp($responsecode, '204') != 0){
+            echo "\nResponse code : ".$apiTestResponse."\n";
+            $logfile='/testlog/safednsapi-tasks.log';
+            $contents = ob_get_flush();
+            file_put_contents($logfile,$contents);
+            throw new pm_Exception('ERROR. API Response code '.$apiTestResponse);
+        }
+        
         $logfile='/testlog/safednsapi-tasks.log';
         $contents = ob_get_flush();
         file_put_contents($logfile,$contents);
-        
 
     }
 
@@ -102,13 +118,14 @@ class Modules_SafednsPlesk_Task_DeleteADomain extends pm_LongTask_Task
             case static::STATUS_RUNNING:
 //                return pm_Locale::lmsg('Syncronising All Domain');
                 pm_Settings::set('taskLock','locked');
-                return ("Running Task: Delete $domainName From SafeDNS");
+                return ("Testing API Key");
             case static::STATUS_DONE:
-                return ("Successful Task: Delete $domainName from SafeDNS");
+                return ("API Key is valid");
             case static::STATUS_ERROR:
-                return ("Task Error: Delete $domainName");
+                pm_Settings::set('taskLock',null);
+                return ("API Key Test Failed");
             case static::STATUS_NOT_STARTED:
-                return ("Tasl Not Started: Delete $domainName");
+                return ("Couldn't start API Key Test");
         }
         return '';
     }
