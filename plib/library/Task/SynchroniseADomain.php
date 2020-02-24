@@ -423,7 +423,29 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
         $logfile='/testlog/safednsapi-tasks.log';
         $contents = ob_get_flush();
         file_put_contents($logfile,$contents);
-    }
+        // Update Last Sync Time
+        // Load the new setting from the next url parameter
+        $timestamp = date("H:i:s d-m-Y");;
+
+        // Retrieve Stored Settings Array for domain
+        $zoneSettingsX=pm_Settings::get('zoneSettings-'.$plesk_domain);
+
+        // Explode the array's stored data from string to array
+        $zoneSettings=explode("|",$zoneSettingsX);
+
+        // Create new Array with changed setting
+        $newZoneSettingsX=array($zoneSettings[0],$timestamp,$zoneSettings[2]);
+
+        // Implode the array with new data, from array to string
+        $newZoneSettings=implode("|",$newZoneSettingsX);
+        var_dump($newZoneSettings);
+
+        // Save the modified string to Plesk key value storage
+        pm_Settings::set('zoneSettings-'.$plesk_domain,$newZoneSettings);
+
+        }
+ 
+    //}
 
 
 
