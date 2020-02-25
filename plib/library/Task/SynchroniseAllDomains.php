@@ -303,6 +303,8 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
                 if (isset($domain->data->gen_info->name)) {
 //                    $plesk_domain=$domain->data->gen_info->name;
                     $plesk_domain=(string)$domain->data->gen_info->name;
+//                  If domain is enabled
+
                     echo "Synchronising $plesk_domain \n"; // debug
                     pm_Settings::set('taskCurrentDomain',$plesk_domain);
                     pm_Settings::set('recordsChanged',null);

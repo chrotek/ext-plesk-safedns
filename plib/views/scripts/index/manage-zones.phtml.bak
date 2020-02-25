@@ -1,2 +1,0 @@
-<?php if ($this->tabs) echo $this->renderTabs($this->tabs) ?>
-<?php echo $this->renderTools($this->tools) ?>

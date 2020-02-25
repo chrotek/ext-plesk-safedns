@@ -252,6 +252,7 @@ class IndexController extends pm_Controller_Action
         $bluePowerIcon= 'modules/safedns-plesk/icons/32/power-blue.png';
         $redCrossIcon= 'modules/safedns-plesk/icons/32/cross-red.png';
         $greenTickIcon= 'modules/safedns-plesk/icons/32/tick-green.png';
+        $redBinIcon= 'modules/safedns-plesk/icons/32/red-bin.png';
         $domInfo = $this->getDomainInfo();
         $pleskDomainList = $domInfo->webspace->get->result;
         if ($pleskDomainlist->status = 'ok') {
@@ -276,7 +277,8 @@ class IndexController extends pm_Controller_Action
                             $newEnabledSetting='False';
                             $syncNowLink=pm_Context::getActionUrl('index','add-task').'/type/synchronise-a-domain/domain/'.$plesk_domain;
                             $toggleAutosyncLink=pm_Context::getActionUrl('index','toggle-autosync-zone').'/domain/'.$plesk_domain.'/new-autosync-setting/'.$newAutosyncSetting;
-
+                            $deleteDomainLink=pm_Context::getActionUrl('index','add-task').'/type/delete-a-domain/domain/'.$plesk_domain;
+//https://46.37.172.40:8443/modules/safedns-plesk/index.php/index/add-task/type/delete-a-domain/domain/quackers.com
                         } else {
                             $domainEnabledIcon=$redPowerIcon;
                             $domainEnabledStatus=False;
@@ -284,6 +286,7 @@ class IndexController extends pm_Controller_Action
                             $newEnabledSetting='True'; 
                             $syncNowLink=pm_Context::getActionUrl('index','synchronise-disabled-zone-fail/domain/').$plesk_domain;
                             $toggleAutosyncLink=pm_Context::getActionUrl('index','autosync-disabled-zone-fail/domain/').$plesk_domain;
+                            $deleteDomainLink=pm_Context::getActionUrl('index','delete-disabled-zone-fail/domain/').$plesk_domain;
                         };
                         // Load LastSync time. Currently being misused as a debug function.
                         $lastSync=$zoneSettings[1];
@@ -340,7 +343,8 @@ class IndexController extends pm_Controller_Action
                         'column-4-lastsync' => '<p>'.$lastSync.'</p>',
 //                        'column-5-autosync' =>'<a href="/'.$autosyncEnabledIcon.'"><img alt="'.$autosyncEnabledText.'" src="/'.$autosyncEnabledIcon.'" /> </a>',
                         'column-5-autosync' => '<a href="'.$toggleAutosyncLink.'"><img alt="'.$autosyncEnabledText.'" src="/'.$autosyncEnabledIcon.'" /> </a>',
-                        'column-6-debug' => '<p>'.$zoneSettingsX.'</p>',
+                        'column-6-deletedomain' => '<a href="'.$deleteDomainLink.'"><img alt="Delete Domain" src="/'.$redBinIcon.'" /> </a>',
+                        'column-7-debug' => '<p>'.$zoneSettingsX.'</p>',
                     ];
                     
                     $options = [
@@ -368,7 +372,7 @@ class IndexController extends pm_Controller_Action
                 'sortable' => false,
             ],            
             'column-3-syncnow' => [
-                'title' => 'Synchronise Now',
+                'title' => 'Sync Now',
                 'noEscape' => true,
                 'sortable' => false,
             ],
@@ -378,11 +382,16 @@ class IndexController extends pm_Controller_Action
                 'sortable' => false,
             ],
             'column-5-autosync' => [
-                'title' => 'Automatic Sync on change',
+                'title' => 'Automatic Sync <br> (on zone change)',
                 'noEscape' => true,
                 'sortable' => false,
             ],
-            'column-6-debug' => [
+            'column-6-deletedomain' => [
+                'title' => 'Delete Zone <br> (From SafeDNS)',
+                'noEscape' => true,
+                'sortable' => false,
+            ],
+            'column-7-debug' => [
                 'title' => 'Debug. (Settings array)',
                 'noEscape' => true,
                 'sortable' => false,
@@ -411,7 +420,12 @@ class IndexController extends pm_Controller_Action
     }
     public function synchroniseDisabledZoneFailAction() {
         $domainx = $this->getParam('domain');
-        $this->_status->addMessage('warning', "Please enable service for $domainx before attempting synchronise.");        
+        $this->_status->addMessage('warning', "Please enable service for $domainx before attempting to synchronise.");        
+        $this->_redirect('index/manageZones');
+    }
+    public function deleteDisabledZoneFailAction() {
+        $domainx = $this->getParam('domain');
+        $this->_status->addMessage('warning', "Please enable service for $domainx before attempting to delete zone.");
         $this->_redirect('index/manageZones');
     }
     public function autosyncDisabledZoneFailAction() {
@@ -631,7 +645,9 @@ class IndexController extends pm_Controller_Action
             $domainToDelete=$form->getValue('selectedDomain');
             $this->_status->addMessage('info', "Requested Domain Delete ".$domainToDelete);
 //            }
-            $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/delete-a-domain/domain/'.$domainToDelete)]);
+//            $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/delete-a-domain/domain/'.$domainToDelete)]);
+            $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/delete-a-domain/domain/'.pm_Settings::get('selectedDomainDelete'))]);
+
         }
         $this->view->form = $form;
     }
