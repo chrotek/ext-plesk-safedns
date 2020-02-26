@@ -290,106 +290,112 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
         $this->request_safedns_zones($api_url);
         $safedns_domains=array();
         $safedns_records_array='NULL';
-
+        $enabledDomains = [];
         $domInfo = $this->getDomainInfo();
         $list = $domInfo->webspace->get->result;
         if ($list->status = 'ok') {
+            foreach ($list as $domain) {
+               echo "|------------------------|\n";
+            // Create an array of domains that are enabled
+                if (isset($domain->data->gen_info->name)) {
+                    $plesk_domain=$domain->data->gen_info->name;
+
+//                  If domain is enabled , add to enabled_domains array
+                    $zoneSettingsX=pm_Settings::get('zoneSettings-'.$plesk_domain);
+                    $zoneSettings=explode("|",$zoneSettingsX);
+                    // If current domain has enabled set to true
+                    if (strcmp($zoneSettings[0], 'True') == 0) {
+                        $enabledDomains[] = (string)$plesk_domain;
+                    }
+                }
+            }
             // Calculate how much % each action is worth. Set % to 0.
-            $pleskDomainCount = count($list);
+            $pleskDomainCount = count($enabledDomains);
             $actionPercent=(100/$pleskDomainCount);
             $currentPercent=0;
-            foreach ($list as $domain) {
-                echo "|------------------------|\n";
-                if (isset($domain->data->gen_info->name)) {
-//                    $plesk_domain=$domain->data->gen_info->name;
-                    $plesk_domain=(string)$domain->data->gen_info->name;
-//                  If domain is enabled
-
-                    echo "Synchronising $plesk_domain \n"; // debug
-                    pm_Settings::set('taskCurrentDomain',$plesk_domain);
-                    pm_Settings::set('recordsChanged',null);
-                    pm_Settings::set('recordsDeleted',null);
+//////////////////////////////////////
+            foreach ($enabledDomains as $plesk_domain) {
+                $this->updateProgress($currentPercent);
+                $currentPercent=($currentPercent+$actionPercent);
+                echo "Synchronising $plesk_domain \n"; // debug
+                pm_Settings::set('taskCurrentDomain',$plesk_domain);
+                pm_Settings::set('recordsChanged',null);
+                pm_Settings::set('recordsDeleted',null);
   
 
-                    $this->updateProgress($currentPercent);
-//                    sleep($this->sleep);
-                    $currentPercent=($currentPercent+$actionPercent);                     
-                    $this->check_create_zone($api_url,$safedns_domains,$plesk_domain);
+//                  $this->updateProgress($currentPercent);
+//                  sleep($this->sleep);
+//                  $currentPercent=($currentPercent+$actionPercent);                     
+                $this->check_create_zone($api_url,$safedns_domains,$plesk_domain);
+                
+                $safedns_records_arrayx=json_encode($safedns_records_array);
+                $this->get_plesk_records_for_domain($plesk_domain);
+                $plesk_domain_records_array=json_decode(pm_Settings::get('plesk_synchronise_all_domain_current_record_array'));
                     
-                    $safedns_records_arrayx=json_encode($safedns_records_array);
-                    $this->get_plesk_records_for_domain($plesk_domain);
-                    $plesk_domain_records_array=json_decode(pm_Settings::get('plesk_synchronise_all_domain_current_record_array'));
-                    
-                    global $safedns_records_array;
-                    $this->request_safedns_record_for_zone($api_url,$plesk_domain);
-                    foreach ($plesk_domain_records_array as $plesk_domain_current_record) {
-                        $plesk_domain_current_record_array=explode(",",$plesk_domain_current_record);
-                        $plesk_record_name=rtrim($plesk_domain_current_record_array[0], ".");
-                        $plesk_record_type=rtrim($plesk_domain_current_record_array[1], ".");
-                        $plesk_record_priority=rtrim($plesk_domain_current_record_array[2], ".");
-                        $plesk_record_content=rtrim($plesk_domain_current_record_array[3], ".");
-                        global $test_result_array;
-                        $this->find_matching_record_safedns($api_url,$plesk_domain,$plesk_record_name,$plesk_record_type,$plesk_record_content,$plesk_record_priority,$safedns_records_array);
-                        if (strcasecmp($test_result_array['testResult'], 'FullMatch') == 0) {
-    //     - Check if record is present in safedns , but content has changed. (Match NAME and TYPE)
-                        } elseif (strcasecmp($test_result_array['testResult'], 'TypeNameMatch') == 0) {
-                            echo "Record already Exists, but content needs to be changed : id- ".$test_result_array['recordID']."zone- ".$plesk_domain." name- ".$plesk_record_name." type- ".$plesk_record_type." content- ".$plesk_record_content."\n";
-                            if(strcasecmp($plesk_record_type , 'MX') == 0){
+                global $safedns_records_array;
+                $this->request_safedns_record_for_zone($api_url,$plesk_domain);
+                foreach ($plesk_domain_records_array as $plesk_domain_current_record) {
+                    $plesk_domain_current_record_array=explode(",",$plesk_domain_current_record);
+                    $plesk_record_name=rtrim($plesk_domain_current_record_array[0], ".");
+                    $plesk_record_type=rtrim($plesk_domain_current_record_array[1], ".");
+                    $plesk_record_priority=rtrim($plesk_domain_current_record_array[2], ".");
+                    $plesk_record_content=rtrim($plesk_domain_current_record_array[3], ".");
+                    global $test_result_array;
+                    $this->find_matching_record_safedns($api_url,$plesk_domain,$plesk_record_name,$plesk_record_type,$plesk_record_content,$plesk_record_priority,$safedns_records_array);
+                    if (strcasecmp($test_result_array['testResult'], 'FullMatch') == 0) {
+                    //     - Check if record is present in safedns , but content has changed. (Match NAME and TYPE)
+                    } elseif (strcasecmp($test_result_array['testResult'], 'TypeNameMatch') == 0) {
+                        echo "Record already Exists, but content needs to be changed : id- ".$test_result_array['recordID']."zone- ".$plesk_domain." name- ".$plesk_record_name." type- ".$plesk_record_type." content- ".$plesk_record_content."\n";
+                        if(strcasecmp($plesk_record_type , 'MX') == 0){
                             $postdata = array(
                                 'name' => $plesk_record_name,
                                 'type' => $plesk_record_type,
                                 'content' => $plesk_record_content,
                                 'priority' => $plesk_record_priority);
-                            } else {
+                        } else {
                             $postdata = array(
-                                'name' => $plesk_record_name,
-                                'type' => $$plesk_record_type,
-                                'content' => $plesk_record_content);
-                            }
-                            pm_Settings::set('recordsChanged','true');
-                            $this->SafeDNS_API_Call('PATCH',$api_url."/zones/".$plesk_domain."/records/".$test_result_array['recordID'], json_encode($postdata));
-                        } elseif (strcasecmp($test_result_array['testResult'], 'IncompatibleType') == 0) {
-                        } elseif (strcasecmp($test_result_array['testResult'], 'NoMatch') == 0) {
-            // If no records match. Create the record
-                            $this->create_record($api_url,$plesk_domain,$plesk_record_name,$plesk_record_type,$plesk_record_content,$plesk_record_priority);
-//                            $record_changed=True;
-                             pm_Settings::set('recordsChanged','true');
-
-                        } else {
-                            echo "ERROR. testResult was ".$test_result_array['testResult']." and the script doesn't know how to handle that\n";
+                            'name' => $plesk_record_name,
+                            'type' => $$plesk_record_type,
+                            'content' => $plesk_record_content);
                         }
-                        $rrCount++;
-                        // Update Last Sync Time
-                        // Load the new setting from the next url parameter
-                        $timestamp = date("H:i:s d-m-Y");;
-
-                        // Retrieve Stored Settings Array for domain
-                        $zoneSettingsX=pm_Settings::get('zoneSettings-'.$plesk_domain);
-
-                        // Explode the array's stored data from string to array
-                        $zoneSettings=explode("|",$zoneSettingsX);
-
-                        // Create new Array with changed setting
-                        $newZoneSettingsX=array($zoneSettings[0],$timestamp,$zoneSettings[2]);
-
-                        // Implode the array with new data, from array to string
-                        $newZoneSettings=implode("|",$newZoneSettingsX);
-                        var_dump($newZoneSettings);
-
-                        // Save the modified string to Plesk key value storage
-                        pm_Settings::set('zoneSettings-'.$plesk_domain,$newZoneSettings);
-
+                        pm_Settings::set('recordsChanged','true');
+                        $this->SafeDNS_API_Call('PATCH',$api_url."/zones/".$plesk_domain."/records/".$test_result_array['recordID'], json_encode($postdata));
+                    } elseif (strcasecmp($test_result_array['testResult'], 'IncompatibleType') == 0) {
+                    } elseif (strcasecmp($test_result_array['testResult'], 'NoMatch') == 0) {
+                        // If no records match. Create the record
+                        $this->create_record($api_url,$plesk_domain,$plesk_record_name,$plesk_record_type,$plesk_record_content,$plesk_record_priority);
+//                        $record_changed=True;
+                        pm_Settings::set('recordsChanged','true');
+                    } else {
+                        echo "ERROR. testResult was ".$test_result_array['testResult']." and the script doesn't know how to handle that\n";
                     }
-                    $this->delete_plesk_missing_record_from_safedns($api_url,$plesk_domain,$plesk_domain_records_array,$safedns_records_array);
-                     if (!pm_Settings::get('recordsChanged')) {
-                        if (!pm_Settings::get('recordsDeleted')) {
-                             echo "No Records Created, Update or Deleted \n";
-                        } else {
-                             echo "No Records Created or Updated \n";
-                        }
-                    } 
+                    $rrCount++;
+                    // Update Last Sync Time
+                    // Load the new setting from the next url parameter
+                    $timestamp = date("H:i:s d-m-Y");;
+                    // Retrieve Stored Settings Array for domain
+                    $zoneSettingsX=pm_Settings::get('zoneSettings-'.$plesk_domain);
+                    // Explode the array's stored data from string to array
+                    $zoneSettings=explode("|",$zoneSettingsX);
+                    // Create new Array with changed setting
+                    $newZoneSettingsX=array($zoneSettings[0],$timestamp,$zoneSettings[2]);
+                    // Implode the array with new data, from array to string
+                    $newZoneSettings=implode("|",$newZoneSettingsX);
+                    var_dump($newZoneSettings);
+                    // Save the modified string to Plesk key value storage
+                    pm_Settings::set('zoneSettings-'.$plesk_domain,$newZoneSettings);
                 }
+                $this->delete_plesk_missing_record_from_safedns($api_url,$plesk_domain,$plesk_domain_records_array,$safedns_records_array);
+                if (!pm_Settings::get('recordsChanged')) {
+                    if (!pm_Settings::get('recordsDeleted')) {
+                        echo "No Records Created, Update or Deleted \n";
+                    } else {
+                        echo "No Records Created or Updated \n";
+                    }
+                } 
             }
+//        }
+//            }
             $logfile='/testlog/safednsapi-tasks.log';
             $contents = ob_get_flush();
             file_put_contents($logfile,$contents);

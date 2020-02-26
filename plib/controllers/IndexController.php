@@ -269,6 +269,7 @@ class IndexController extends pm_Controller_Action
                         $zoneSettingsX=pm_Settings::get('zoneSettings-'.$plesk_domain);
                         $zoneSettings=explode("|",$zoneSettingsX);
                         // If current domain has enabled set to true
+
                         if (strcmp($zoneSettings[0], 'True') == 0) {
 //                        if($zoneSettings[0]) {
                             $domainEnabledIcon=$bluePowerIcon;
