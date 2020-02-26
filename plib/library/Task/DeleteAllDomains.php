@@ -75,23 +75,36 @@ class Modules_SafednsPlesk_Task_DeleteAllDomains extends pm_LongTask_Task
         $api_url="https://api.ukfast.io/safedns/v1";
         ob_start();
         pm_Settings::set('taskLock','locked');
+        $enabledDomains = [];
         $domInfo = $this->getDomainInfo();
         $list = $domInfo->webspace->get->result;
         if ($list->status = 'ok') {
-            // Calculate how much % each action is worth. Set % to 0.
-            $pleskDomainCount = count($list);
-            $actionPercent=(100/$pleskDomainCount);
-            $currentPercent=0;
+            // Create an array of domains that are enabled
             foreach ($list as $domain) {
                 if (isset($domain->data->gen_info->name)) {
                     $plesk_domain=$domain->data->gen_info->name;
-                    pm_Settings::set('taskCurrentDeleteDomain',$plesk_domain);
-                    $this->updateProgress($currentPercent);
-//                    sleep($this->sleep);
-                    $currentPercent=($currentPercent+$actionPercent);
-                    echo "DEL ZONE API CALL : $api_url/zones/$plesk_domain,false";
-                    $this->SafeDNS_API_Call('DELETE',$api_url."/zones/".$plesk_domain,false);
+
+//                  If domain is enabled , add to enabled_domains array
+                    $zoneSettingsX=pm_Settings::get('zoneSettings-'.$plesk_domain);
+                    $zoneSettings=explode("|",$zoneSettingsX);
+                    // If current domain has enabled set to true
+                    if (strcmp($zoneSettings[0], 'True') == 0) {
+                        $enabledDomains[] = (string)$plesk_domain;
+                    }
                 }
+            }
+            // Calculate how much % each action is worth. Set % to 0.
+            $pleskDomainCount = count($enabledDomains);
+            $actionPercent=(100/$pleskDomainCount);
+            $currentPercent=0;
+            // Iterate over enabled domains array
+            foreach ($enabledDomains as $plesk_domain) {
+                pm_Settings::set('taskCurrentDeleteDomain',$plesk_domain);
+                $this->updateProgress($currentPercent);
+                $currentPercent=($currentPercent+$actionPercent);
+                echo "DEL ZONE API CALL : $api_url/zones/$plesk_domain,false";
+                $this->SafeDNS_API_Call('DELETE',$api_url."/zones/".$plesk_domain,false);
+                
             }
         $logfile='/testlog/safednsapi-tasks.log';
         $contents = ob_get_flush();
