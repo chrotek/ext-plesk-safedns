@@ -69,9 +69,23 @@ class Modules_SafednsPlesk_Task_DeleteAllDomains extends pm_LongTask_Task
         return $result;
     }
 
-
+    public function safedns_write_log($log_msg)
+    {
+        $log_filename = "/var/log/plesk/ext-plesk-safedns";
+        $log_timestamp= date("d-m-Y_H:i:s")
+        // DEINFING LOG LINE
+        if (!file_exists($log_filename)) 
+        {
+            // create directory/folder uploads.
+            mkdir($log_filename, 0777, true);
+        }
+        $log_file_data = $log_filename.'/ext-plesk-safedns-' . date('d-M-Y') . '.log';
+        // if you don't add `FILE_APPEND`, the file will be erased each time you add a log
+        file_put_contents($log_file_data, $log_msg . "\n", FILE_APPEND);
+    } 
     public function run()
     {
+        $this->wh_log("this is my log message");
         $api_url="https://api.ukfast.io/safedns/v1";
         ob_start();
         pm_Settings::set('taskLock','locked');
