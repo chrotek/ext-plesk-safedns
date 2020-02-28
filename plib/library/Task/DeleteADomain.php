@@ -9,6 +9,20 @@ class Modules_SafednsPlesk_Task_DeleteADomain extends pm_LongTask_Task
     private static $progressText = 'Progress is ';
     //public $domainName=var_dump(pm_Settings::get('selectedDomainDelete'));
 
+    public function safedns_write_log($log_msg) {
+        $log_filename = "/var/log/plesk/ext-plesk-safedns";
+        $log_timestamp= date("d-m-Y_H:i:s");
+        $log_prepend = $log_timestamp." | ";
+        if (!file_exists($log_filename)) {
+            // create directory/folder uploads.
+            mkdir($log_filename, 0770, true);
+        }
+        $log_file_data = $log_filename.'/ext-plesk-safedns-' . date('d-M-Y') . '.log';
+        // if you don't add `FILE_APPEND`, the file will be erased each time you add a log
+        file_put_contents($log_file_data, $log_prepend . $log_msg . "\n", FILE_APPEND);
+    }
+
+
     public function SafeDNS_API_Call($method, $url, $data){
         $curl = curl_init();
         switch ($method){
@@ -50,44 +64,35 @@ class Modules_SafednsPlesk_Task_DeleteADomain extends pm_LongTask_Task
         $responsecode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         if(strcasecmp($method, 'DELETE') == 0){
             if(strcasecmp($responsecode, '204') == 0){
-                echo "Delete Successful, Response code ".$responsecode."\n";
+                $this->safedns_write_log("Delete Successful, Response code ".$responsecode."\n");
+            } elseif(strcasecmp($responsecode, '404') == 0){
+                    $this->safedns_write_log("Zone does not exist on SafeDNS. ".$responsecode."\n");
             } else {
-                echo "Issue deleting data. Response code ".$responsecode."\n";
+                $this->safedns_write_log("Issue deleting data. Response code ".$responsecode."\n");
             }
         } else {
-            if(!$result){die("API Sent no Data back. Response code :".$responsecode."n");}
-        }
-        if(strcasecmp($responsecode, '200') != 0){
-            if(strcasecmp($responsecode, '204') != 0){
-                echo "\nResponse code : ".$responsecode."\n";
+            if(!$result) {
+                $this->safedns_write_log("API Sent no Data back. Response code :".$responsecode."\n");
+                die("API Sent no Data back. Response code :".$responsecode."n");
             }
         }
-        // echo "Response code : ".$responsecode."n";
-        // TODO - If response code not 200 , handle
         curl_close($curl);
-
-
         return $result;
     }
 
-
-
-
     public function run()
     {
+        $this->safedns_write_log("Starting Task - Delete A Zone");
         $plesk_domain=pm_Settings::get('selectedDomainDelete');
         $api_url="https://api.ukfast.io/safedns/v1";
-        ob_start();
         pm_Settings::set('taskLock','locked');
         pm_Settings::set('taskCurrentDeleteDomain',$plesk_domain);
         $this->updateProgress($currentPercent);
         $currentPercent=($currentPercent+$actionPercent);
-        echo "DEL ZONE API CALL : $api_url/zones/$plesk_domain,false";
+        $this->safedns_write_log("Deleting Zone: ".$plesk_domain);
+
         $this->SafeDNS_API_Call('DELETE',$api_url."/zones/".$plesk_domain,false);
 
-        $logfile='/testlog/safednsapi-tasks.log';
-        $contents = ob_get_flush();
-        file_put_contents($logfile,$contents);
         
 
     }

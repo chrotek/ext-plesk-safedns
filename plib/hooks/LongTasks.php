@@ -13,6 +13,7 @@ class Modules_SafednsPlesk_LongTasks extends pm_Hook_LongTasks
             new Modules_SafednsPlesk_Task_Fail(),
             new Modules_SafednsPlesk_Task_TaskLocked(),
             new Modules_SafednsPlesk_Task_InvalidKey(),
+            new Modules_SafednsPlesk_Task_AutosyncEnabledDomains(),
             new Modules_SafednsPlesk_Task_SynchroniseAllDomains(),
             new Modules_SafednsPlesk_Task_SynchroniseADomain(), 
             new Modules_SafednsPlesk_Task_DeleteAllDomains(),

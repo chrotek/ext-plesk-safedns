@@ -9,6 +9,77 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
     private static $progressText = 'Progress is ';
     //public $domainName=var_dump(pm_Settings::get('selectedDomain'));
 
+
+    public function safedns_write_log($log_msg) {
+        $log_filename = "/var/log/plesk/ext-plesk-safedns";
+        $log_timestamp= date("d-m-Y_H:i:s");
+        $log_prepend = $log_timestamp." | ";
+        if (!file_exists($log_filename)) {
+            // create directory/folder uploads.
+            mkdir($log_filename, 0770, true);
+        }
+        $log_file_data = $log_filename.'/ext-plesk-safedns-' . date('d-M-Y') . '.log';
+        // if you don't add `FILE_APPEND`, the file will be erased each time you add a log
+        file_put_contents($log_file_data, $log_prepend . $log_msg . "\n", FILE_APPEND);
+    }
+
+    public function SafeDNS_API_Call($method, $url, $data){
+        $curl = curl_init();
+        switch ($method){
+            case "POST":
+                curl_setopt($curl, CURLOPT_POST, 1);
+                if ($data)
+                    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+                    break;
+            case "GET":
+                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "GET");
+                if ($data)
+                    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+                    break;
+            case "PATCH":
+                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+                if ($data)
+                    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+                    break;
+            case "DELETE":
+                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+                if ($data)
+                    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+                    break;
+            default:
+                if ($data)
+                    $url = sprintf("%s?%s", $url, http_build_query($data));
+        }
+        // OPTIONS:
+        $api_key=pm_Settings::get('api_key');
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+            "Authorization: $api_key",
+            'Content-Type: application/json',
+        ));
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+        // EXECUTE:
+        $result = curl_exec($curl);
+        $responsecode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        if(strcasecmp($method, 'DELETE') == 0){
+            if(strcasecmp($responsecode, '204') == 0){
+                $this->safedns_write_log("Delete Successful, Response code ".$responsecode."\n");
+            } elseif(strcasecmp($responsecode, '404') == 0){
+                    $this->safedns_write_log("Zone does not exist on SafeDNS. ".$responsecode."\n");
+            } else {
+                $this->safedns_write_log("Issue deleting data. Response code ".$responsecode."\n");
+            }
+        } else {
+            if(!$result) {
+                $this->safedns_write_log("API Sent no Data back. Response code :".$responsecode."\n");
+                die("API Sent no Data back. Response code :".$responsecode."n");
+            }
+        }
+        curl_close($curl);
+        return $result;
+    }
+
     private function request_safedns_zones($api_url){
         $get_data = $this->SafeDNS_API_Call('GET',$api_url."/zones?per_page=50",false);
         $response = json_decode($get_data, true);
@@ -36,10 +107,10 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
         global $safedns_records_array;
         $safedns_records_array = array();
         foreach ($data['data'] as $val) {
-        /* echo "ID : " .$val['id']."\n";
-           echo "NAME : ".$val['name']."\n";
-           echo "TYPE : ".$val['type']."\n";
-           echo "CONTENT : ".$val['content']."\n";         */
+        /* "ID : " .$val['id']."\n";
+           "NAME : ".$val['name']."\n";
+           "TYPE : ".$val['type']."\n";
+           "CONTENT : ".$val['content']."\n";         */
             if(strcasecmp($val['type'], 'MX') == 0){
                 array_push($safedns_records_array,$val['id'].",".$val['name'].",".$val['type'].",".$val['content'].",".$val['priority']);
             } else {
@@ -56,20 +127,20 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
           {}
         else
           {
-          print_r($safedns_domains);
-          echo "Creating Zone: ".$input_zone."\n";
+//          print_r($safedns_domains);
+          $this->safedns_write_log("Creating Zone: ".$input_zone);
           // CREATE ZONE
           $postdata = array(
               'name' => $input_zone,
           );
-         
+
           $this->SafeDNS_API_Call('POST',$api_url."/zones/", json_encode($postdata));
           }
     }
-    
+   
+ 
     public function create_record($api_url,$zone_name,$record_name,$record_type,$record_content,$record_priority){
-        echo "Creating ".$record_type." Record: ".rtrim($record_name, ".")." with content ".$record_content." on zone ".$zone_name."\n";
-    
+        $this->safedns_write_log("Creating ".$record_type." Record: ".rtrim($record_name, ".")." with content ".$record_content." on zone ".$zone_name);    
         if(strcasecmp($record_type, 'MX') == 0){
             $postdata = array(
                 'name' => rtrim($record_name, "."),
@@ -184,7 +255,8 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
                         //echo "Not deleting SOA Record Unsupported in safedns\n";
                     } else {
                         //echo "Deleting ".$safedns_record[2]." Record ".$safedns_record[1]."from SafeDNS, It no longer exists in plesk:\n : id- ".$safedns_record[0]."zone- ".var_dump($zone_name)." name- ".$safedns_record[1]." type- ".$safedns_record[2]." content- ".$safedns_record[3]."\n";
-                        echo "Deleting ".$safedns_record[2]." Record ".$safedns_record[1]." from SafeDNS, It no longer exists in plesk. \n";
+                        $this->safedns_write_log("Deleting ".$safedns_record[2]." Record ".$safedns_record[1]." from SafeDNS, It no longer exists in plesk. ");
+
                         pm_Settings::set('recordsDeleted','true');
     
                         $this->SafeDNS_API_Call('DELETE',$api_url."/zones/".$zone_name."/records/".$safedns_record[0],false);
@@ -197,32 +269,6 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
                 }
     
             }
-    }
-    
-    public function delete_matched_record_safedns($api_url,$zone_name,$record_name,$record_type,$record_content,$safedns_records_array) {
-        if (strcasecmp(var_dump($safedns_records_array), 'NULL') == 0) {
-            echo "Records Array DOESNT Exist! Retrieving.\n";
-            global $safedns_records_array;
-            $this->request_safedns_record_for_zone($api_url,$zone_name);
-        }
-        global $test_result_array;
-        $this->find_matching_record_safedns($api_url,$zone_name,$record_name,$record_type,$record_content,$safedns_records_array);
-    
-        if (strcasecmp($test_result_array['testResult'], 'FullMatch') == 0) {
-            echo "Deleting Record from SafeDNS : id- ".$test_result_array['recordID']."zone- ".$zone_name." name- ".$record_name." type- ".$record_type." content- ".$record_content."\n";
-    
-            // DELETE the record
-            $this->SafeDNS_API_Call('DELETE',$api_url."/zones/".$zone_name."/records/".$test_result_array['recordID'],false);
-        }
-    
-    
-        if (strcasecmp($test_result_array['testResult'], 'PartialMatch') == 0) {
-            echo "Not deleting record from SafeDNS, as it doesn't fully match Plesk : zone- ".$zone_name." name- ".$record_name." type- ".$record_type." content- ".$record_content."\n";
-        }
-        if (strcasecmp($test_result_array['testResult'], 'NoMatch') == 0) {
-            echo "Not deleting record from SafeDNS, as no fields matched : zone- ".$zone_name." name- ".$record_name." type- ".$record_type." content- ".$record_content."\n";
-        }
-    
     }
     
     public function get_plesk_domains() {
@@ -281,74 +327,10 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
        
         pm_Settings::set('plesk_synchronise_all_domain_current_record_array',json_encode($plesk_domain_records_array));
     }
-    
-    public function SafeDNS_API_Call($method, $url, $data){
-        $curl = curl_init();
-        switch ($method){
-            case "POST":
-                curl_setopt($curl, CURLOPT_POST, 1);
-                if ($data)
-                    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-                    break;
-            case "GET":
-                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "GET");
-                if ($data)
-                    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-                    break;
-            case "PATCH":
-                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PATCH");
-                if ($data)
-                    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-                    break;
-            case "DELETE":
-                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-                if ($data)
-                    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-                    break;
-            default:
-                if ($data)
-                    $url = sprintf("%s?%s", $url, http_build_query($data));
-        }
-        // OPTIONS:
-        $api_key=pm_Settings::get('api_key');
-        curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-            "Authorization: $api_key",
-            'Content-Type: application/json',
-        ));
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-        // EXECUTE:
-        $result = curl_exec($curl);
-        $responsecode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        if(strcasecmp($method, 'DELETE') == 0){
-            if(strcasecmp($responsecode, '204') == 0){
-                echo "Delete Successful, Response code ".$responsecode."\n";
-            } else {
-                echo "Issue deleting data. Response code ".$responsecode."\n";
-            }
-        } else {
-            if(!$result){die("API Sent no Data back. Response code :".$responsecode."n");}
-        }
-        if(strcasecmp($responsecode, '200') != 0){
-            if(strcasecmp($responsecode, '204') != 0){
-                echo "\nResponse code : ".$responsecode."\n";
-            }
-        }
-        // echo "Response code : ".$responsecode."n";
-        // TODO - If response code not 200 , handle
-        curl_close($curl);
-    
-    
-        return $result;
-    }
-
-
 
 
     public function run()
     {
-        ob_start();
         $plesk_domain=pm_Settings::get('selectedDomainSychronise');
         pm_Settings::set('taskLock','locked');
     
@@ -358,7 +340,7 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
         $safedns_domains=array();
         $safedns_records_array='NULL';
     
-        echo "Synchronising $plesk_domain \n"; // debug
+        $this->safedns_write_log("Synchronising $plesk_domain ");
         pm_Settings::set('taskCurrentDomain',$plesk_domain);
         pm_Settings::set('recordsChanged',null);
         pm_Settings::set('recordsDeleted',null);
@@ -385,7 +367,7 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
             if (strcasecmp($test_result_array['testResult'], 'FullMatch') == 0) {
          //     - Check if record is present in safedns , but content has changed. (Match NAME and TYPE)
             } elseif (strcasecmp($test_result_array['testResult'], 'TypeNameMatch') == 0) {
-                echo "Record already Exists, but content needs to be changed : id- ".$test_result_array['recordID']."zone- ".$plesk_domain." name- ".$plesk_record_name." type- ".$plesk_record_type." content- ".$plesk_record_content."\n";
+                $this->safedns_write_log("Record already Exists, but content needs to be changed : id- ".$test_result_array['recordID']."zone- ".$plesk_domain." name- ".$plesk_record_name." type- ".$plesk_record_type." content- ".$plesk_record_content);
                 if(strcasecmp($plesk_record_type , 'MX') == 0){
                 $postdata = array(
                     'name' => $plesk_record_name,
@@ -408,16 +390,16 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
                  pm_Settings::set('recordsChanged','true');
         
             } else {
-                echo "ERROR. testResult was ".$test_result_array['testResult']." and the script doesn't know how to handle that\n";
+                $this->safedns_write_log("ERROR. testResult was ".$test_result_array['testResult']." and the script doesn't know how to handle that");
             }
             $rrCount++;
         }
         $this->delete_plesk_missing_record_from_safedns($api_url,$plesk_domain,$plesk_domain_records_array,$safedns_records_array);
          if (!pm_Settings::get('recordsChanged')) {
             if (!pm_Settings::get('recordsDeleted')) {
-                 echo "No Records Created, Update or Deleted \n";
+                $this->safedns_write_log("No Records Created, Update or Deleted");
             } else {
-                 echo "No Records Created or Updated \n";
+                $this->safedns_write_log("No Records Created or Updated");
             }
         }
         $logfile='/testlog/safednsapi-tasks.log';

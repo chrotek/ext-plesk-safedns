@@ -6,6 +6,19 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
     private $sleep = 1;
     private static $progressText = 'Progress is ';
 
+    public function safedns_write_log($log_msg) {
+        $log_filename = "/var/log/plesk/ext-plesk-safedns";
+        $log_timestamp= date("d-m-Y_H:i:s");
+        $log_prepend = $log_timestamp." | ";
+        if (!file_exists($log_filename)) {
+            // create directory/folder uploads.
+            mkdir($log_filename, 0770, true);
+        }
+        $log_file_data = $log_filename.'/ext-plesk-safedns-' . date('d-M-Y') . '.log';
+        // if you don't add `FILE_APPEND`, the file will be erased each time you add a log
+        file_put_contents($log_file_data, $log_prepend . $log_msg . "\n", FILE_APPEND);
+    }
+
     private function request_safedns_zones($api_url){
         $get_data = $this->SafeDNS_API_Call('GET',$api_url."/zones?per_page=50",false);
         $response = json_decode($get_data, true);
@@ -33,10 +46,10 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
         global $safedns_records_array;
         $safedns_records_array = array();
         foreach ($data['data'] as $val) {
-        /* echo "ID : " .$val['id']."\n";
-           echo "NAME : ".$val['name']."\n";
-           echo "TYPE : ".$val['type']."\n";
-           echo "CONTENT : ".$val['content']."\n";         */
+        /*  "ID      : " .$val['id']."\n";
+            "NAME    : ".$val['name']."\n";
+            "TYPE    : ".$val['type']."\n";
+            "CONTENT : ".$val['content']."\n";         */
             if(strcasecmp($val['type'], 'MX') == 0){
                 array_push($safedns_records_array,$val['id'].",".$val['name'].",".$val['type'].",".$val['content'].",".$val['priority']);
             } else {
@@ -53,8 +66,8 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
           {}
         else
           {
-          print_r($safedns_domains);
-          echo "Creating Zone: ".$input_zone."\n";
+//          print_r($safedns_domains);
+          $this->safedns_write_log("Creating Zone: ".$input_zone);
           // CREATE ZONE
           $postdata = array(
               'name' => $input_zone,
@@ -65,7 +78,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
     }
 
     public function create_record($api_url,$zone_name,$record_name,$record_type,$record_content,$record_priority){
-        echo "Creating ".$record_type." Record: ".rtrim($record_name, ".")." with content ".$record_content." on zone ".$zone_name."\n";
+        $this->safedns_write_log("Creating ".$record_type." Record: ".rtrim($record_name, ".")." with content ".$record_content." on zone ".$zone_name);
 
         if(strcasecmp($record_type, 'MX') == 0){
             $postdata = array(
@@ -176,16 +189,12 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
                 if (strcasecmp($testresult, "NoMatch") == 0) {
     //           Leave NS and SOA Records alone. Delete anything else
                     if (strcasecmp($safedns_record[2], 'NS') == 0) {
-                        //echo "Not deleting NS Record. Unsupported in safedns\n";
                     } elseif (strcasecmp($safedns_record[2], 'SOA') == 0) {
-                        //echo "Not deleting SOA Record Unsupported in safedns\n";
                     } else {
-                        //echo "Deleting ".$safedns_record[2]." Record ".$safedns_record[1]."from SafeDNS, It no longer exists in plesk:\n : id- ".$safedns_record[0]."zone- ".var_dump($zone_name)." name- ".$safedns_record[1]." type- ".$safedns_record[2]." content- ".$safedns_record[3]."\n";
-                        echo "Deleting ".$safedns_record[2]." Record ".$safedns_record[1]." from SafeDNS, It no longer exists in plesk. \n";
+                        $this->safedns_write_log("Deleting ".$safedns_record[2]." Record ".$safedns_record[1]." from SafeDNS, It no longer exists in plesk. ");
                         pm_Settings::set('recordsDeleted','true');
 
                         $this->SafeDNS_API_Call('DELETE',$api_url."/zones/".$zone_name."/records/".$safedns_record[0],false);
-//                        $deleted_record=True;
                     }
 
 
@@ -196,9 +205,9 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
             }
     }
 
-    public function delete_matched_record_safedns($api_url,$zone_name,$record_name,$record_type,$record_content,$safedns_records_array) {
-        if (strcasecmp(var_dump($safedns_records_array), 'NULL') == 0) {
-            echo "Records Array DOESNT Exist! Retrieving.\n";
+/*    public function delete_matched_record_safedns($api_url,$zone_name,$record_name,$record_type,$record_content,$safedns_records_array) {
+        if (strcasecmp(implode("|".$safedns_records_array), 'NULL') == 0) {
+            $this->safedns_write_log("Records Array DOESNT Exist! Retrieving.\n");
             global $safedns_records_array;
             $this->request_safedns_record_for_zone($api_url,$zone_name);
         }
@@ -206,7 +215,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
         $this->find_matching_record_safedns($api_url,$zone_name,$record_name,$record_type,$record_content,$safedns_records_array);
 
         if (strcasecmp($test_result_array['testResult'], 'FullMatch') == 0) {
-            echo "Deleting Record from SafeDNS : id- ".$test_result_array['recordID']."zone- ".$zone_name." name- ".$record_name." type- ".$record_type." content- ".$record_content."\n";
+            $this->safedns_write_log("Deleting Record from SafeDNS : id- ".$test_result_array['recordID']."zone- ".$zone_name." name- ".$record_name." type- ".$record_type." content- ".$record_content."\n");
 
             // DELETE the record
             $this->SafeDNS_API_Call('DELETE',$api_url."/zones/".$zone_name."/records/".$test_result_array['recordID'],false);
@@ -214,14 +223,14 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
 
 
         if (strcasecmp($test_result_array['testResult'], 'PartialMatch') == 0) {
-            echo "Not deleting record from SafeDNS, as it doesn't fully match Plesk : zone- ".$zone_name." name- ".$record_name." type- ".$record_type." content- ".$record_content."\n";
+            $this->safedns_write_log("Not deleting record from SafeDNS, as it doesn't fully match Plesk : zone- ".$zone_name." name- ".$record_name." type- ".$record_type." content- ".$record_content."\n");
         }
         if (strcasecmp($test_result_array['testResult'], 'NoMatch') == 0) {
-            echo "Not deleting record from SafeDNS, as no fields matched : zone- ".$zone_name." name- ".$record_name." type- ".$record_type." content- ".$record_content."\n";
+            $this->safedns_write_log("Not deleting record from SafeDNS, as no fields matched : zone- ".$zone_name." name- ".$record_name." type- ".$record_type." content- ".$record_content."\n");
         }
 
     }
-
+*/
     public function get_plesk_domains() {
         $plesk_domaindata_array=pm_Domain::getAllDomains();
 
@@ -282,9 +291,8 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
 
     public function run()
     {
-        ob_start();
+        $this->safedns_write_log("Starting Task - Sychronise all Zones");
         pm_Settings::set('taskLock','locked');
- 
         $api_url="https://api.ukfast.io/safedns/v1";
 
         $this->request_safedns_zones($api_url);
@@ -295,12 +303,11 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
         $list = $domInfo->webspace->get->result;
         if ($list->status = 'ok') {
             foreach ($list as $domain) {
-               echo "|------------------------|\n";
             // Create an array of domains that are enabled
                 if (isset($domain->data->gen_info->name)) {
                     $plesk_domain=$domain->data->gen_info->name;
 
-//                  If domain is enabled , add to enabled_domains array
+                    //If domain is enabled , add to enabled_domains array
                     $zoneSettingsX=pm_Settings::get('zoneSettings-'.$plesk_domain);
                     $zoneSettings=explode("|",$zoneSettingsX);
                     // If current domain has enabled set to true
@@ -313,11 +320,10 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
             $pleskDomainCount = count($enabledDomains);
             $actionPercent=(100/$pleskDomainCount);
             $currentPercent=0;
-//////////////////////////////////////
             foreach ($enabledDomains as $plesk_domain) {
                 $this->updateProgress($currentPercent);
                 $currentPercent=($currentPercent+$actionPercent);
-                echo "Synchronising $plesk_domain \n"; // debug
+                $this->safedns_write_log("Synchronising $plesk_domain ");
                 pm_Settings::set('taskCurrentDomain',$plesk_domain);
                 pm_Settings::set('recordsChanged',null);
                 pm_Settings::set('recordsDeleted',null);
@@ -345,7 +351,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
                     if (strcasecmp($test_result_array['testResult'], 'FullMatch') == 0) {
                     //     - Check if record is present in safedns , but content has changed. (Match NAME and TYPE)
                     } elseif (strcasecmp($test_result_array['testResult'], 'TypeNameMatch') == 0) {
-                        echo "Record already Exists, but content needs to be changed : id- ".$test_result_array['recordID']."zone- ".$plesk_domain." name- ".$plesk_record_name." type- ".$plesk_record_type." content- ".$plesk_record_content."\n";
+                        $this->safedns_write_log("Record already Exists, but content needs to be changed : id- ".$test_result_array['recordID']."zone- ".$plesk_domain." name- ".$plesk_record_name." type- ".$plesk_record_type." content- ".$plesk_record_content);
                         if(strcasecmp($plesk_record_type , 'MX') == 0){
                             $postdata = array(
                                 'name' => $plesk_record_name,
@@ -364,10 +370,9 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
                     } elseif (strcasecmp($test_result_array['testResult'], 'NoMatch') == 0) {
                         // If no records match. Create the record
                         $this->create_record($api_url,$plesk_domain,$plesk_record_name,$plesk_record_type,$plesk_record_content,$plesk_record_priority);
-//                        $record_changed=True;
                         pm_Settings::set('recordsChanged','true');
                     } else {
-                        echo "ERROR. testResult was ".$test_result_array['testResult']." and the script doesn't know how to handle that\n";
+                        $this->safedns_write_log("ERROR. testResult was ".$test_result_array['testResult']." and the script doesn't know how to handle that");
                     }
                     $rrCount++;
                     // Update Last Sync Time
@@ -381,24 +386,18 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
                     $newZoneSettingsX=array($zoneSettings[0],$timestamp,$zoneSettings[2]);
                     // Implode the array with new data, from array to string
                     $newZoneSettings=implode("|",$newZoneSettingsX);
-                    var_dump($newZoneSettings);
                     // Save the modified string to Plesk key value storage
                     pm_Settings::set('zoneSettings-'.$plesk_domain,$newZoneSettings);
                 }
                 $this->delete_plesk_missing_record_from_safedns($api_url,$plesk_domain,$plesk_domain_records_array,$safedns_records_array);
                 if (!pm_Settings::get('recordsChanged')) {
                     if (!pm_Settings::get('recordsDeleted')) {
-                        echo "No Records Created, Update or Deleted \n";
+                        $this->safedns_write_log("No Records Created, Update or Deleted");
                     } else {
-                        echo "No Records Created or Updated \n";
+                        $this->safedns_write_log("No Records Created or Updated");
                     }
                 } 
             }
-//        }
-//            }
-            $logfile='/testlog/safednsapi-tasks.log';
-            $contents = ob_get_flush();
-            file_put_contents($logfile,$contents);
         }
 
 
@@ -491,16 +490,19 @@ APICALL;
         $responsecode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         if(strcasecmp($method, 'DELETE') == 0){
             if(strcasecmp($responsecode, '204') == 0){
-                echo "Delete Successful, Response code ".$responsecode."\n";
+                $this->safedns_write_log("Delete Successful, Response code ".$responsecode);
             } else {
-                echo "Issue deleting data. Response code ".$responsecode."\n";
+                $this->safedns_write_log("Issue deleting data. Response code ".$responsecode);
             }
         } else {
-            if(!$result){die("API Sent no Data back. Response code :".$responsecode."n");}
+            if(!$result) {
+                $this->safedns_write_log("API Sent no Data back. Response code :".$responsecode);
+                die("API Sent no Data back. Response code :".$responsecode);
+            }
         }
         if(strcasecmp($responsecode, '200') != 0){
             if(strcasecmp($responsecode, '204') != 0){
-                echo "\nResponse code : ".$responsecode."\n";
+                $this->safedns_write_log("Response code : ".$responsecode);
             }
         }
         // echo "Response code : ".$responsecode."n";
