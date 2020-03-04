@@ -6,7 +6,7 @@ class IndexController extends pm_Controller_Action
 {
     private $taskManager = NULL;
     protected $_accessLevel = 'admin';
-    protected $_api_key = '--------------------';
+//    private $_api_key = (pm_Settings::get('api_key'));
     public function init()
     {
         parent::init();
@@ -14,6 +14,19 @@ class IndexController extends pm_Controller_Action
             $this->taskManager = new pm_LongTask_Manager();
         }
         $this->view->pageTitle = 'SafeDNS Plesk Integration';
+    }
+
+    public function safedns_write_log($log_msg) {
+        $log_filename = "/var/log/plesk/ext-plesk-safedns";
+        $log_timestamp= date("d-m-Y_H:i:s");
+        $log_prepend = $log_timestamp." | ";
+        if (!file_exists($log_filename)) {
+            // create directory/folder uploads.
+            mkdir($log_filename, 0770, true);
+        }
+        $log_file_data = $log_filename.'/ext-plesk-safedns-' . date('d-M-Y') . '.log';
+        // if you don't add `FILE_APPEND`, the file will be erased each time you add a log
+        file_put_contents($log_file_data, $log_prepend . $log_msg . "\n", FILE_APPEND);
     }
 
     public function addTaskAction()
@@ -75,15 +88,6 @@ class IndexController extends pm_Controller_Action
     public function toolsAction() {
         $status='null';
         pm_settings::set('previousLocation','index/tools');
-
-/*
-//        pm_Settings::set('enabled',null); ////////////////////////////////////////////////////////////////////////////////////////////////
-        pm_Settings::get('enabled');
-
-//        $originalsetting=pm_Settings::get('enabled');
-
-//        $toggle_link=pm_Settings::set('enabled','true');
-        //pm_Settings::set('enabled',null);
 	if (pm_Settings::get('enabled')) {
             $status='enabled';
             $originalsetting='true';
@@ -93,21 +97,7 @@ class IndexController extends pm_Controller_Action
             $originalsetting=null;
             $toggle_link=pm_Settings::set('enabled','true');
         };
-        pm_Settings::set('enabled',$originalsetting);								*/
-        // Init form here
-/*        if (pm_Settings::get('taskLock')) {
-            $form = new pm_Form_Simple();
-            $this->_redirect('index');
-            $this->_status->addMessage('warning', 'Please wait for current task to finish');
-            $this->view->form = $form;
-        }
-
-        if (pm_Settings::get('taskLock')) {
-            $taskLockStatus="taskLock is locked";
-        } else {
-            $taskLockStatus="taskLock is null";
-        }        
-*/
+        pm_Settings::set('enabled',$originalsetting);					
         $this->view->tools = [
             [
                 'icon' => \pm_Context::getBaseUrl() . 'icons/32/key.png',
@@ -175,15 +165,89 @@ class IndexController extends pm_Controller_Action
     public function welcomeAction() {
 
         $form = new pm_Form_Simple();
+
         $form->addElement('SimpleText', 'text', [
-            'value' => 'Count of global failed tasks:<br> 
-                        Next line of text',
+            'value' => "This extension allows you to manage your SafeDNS Zones from inside plesk."
         ]);
+        if (!pm_Settings::get('validKey')) {
+            $form->addElement('SimpleText', 'enterkey', [
+                'value' => "To get started, enter an API Key below and click Save"
+            ]);
+
+            $form->addElement('text', 'api_key', ['label' => 'Please enter API Key', 'value' => pm_Settings::get('api_key'), 'style' => 'width: 40%;']);
+            $form->addControlButtons(['sendTitle' => 'Save','cancelHidden' => true,'hideLegend'=>true]);
+
+            if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
+                if ($form->getValue('api_key')) {
+                    $this->_api_key = $form->getValue('api_key');
+                }
+                pm_Settings::set('api_key', $this->_api_key);
+                $this->_status->addMessage('info', 'API Key Saved');
+                pm_settings::set('previousLocation','index/welcome');
+                $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key')]);
+            }
+
+        } else {
+            $form->addElement('SimpleText', 'validkey', [
+                'value' => "Great! The key is valid."
+            ]);
+            if (!pm_Settings::get('nameserverChanged')) {
+                $form->addElement('SimpleText', 'changens', [
+                'value' => "Next, the nameservers in Plesk's dns zones must be set to ukfast."
+                ]);
+                $form->addElement('SimpleText', 'changens2', [
+                'value' => "Please go to Tools & Settings > General Settings > DNS Zone Template, and change the NS records to:"
+                ]);
+                $form->addElement('SimpleText', 'changens3', [
+                'value' => "ns0.ukfast.net"
+                ]);
+                $form->addElement('SimpleText', 'changens4', [
+                'value' => "ns1.ukfast.net"
+                ]);
+                $form->addElement('SimpleText', 'changens5', [
+                'value' => "Then, click 'Apply DNS Template Changes' , and select 'Apply the changes to all zones.'   "
+                ]);
+                $form->addElement('SimpleText', 'changens5', [
+                'value' => "Finally, Click the Complete button below"
+                ]);
+                $form->addControlButtons(['sendTitle' => 'Complete','cancelHidden' => true,'hideLegend'=>true]);
+                if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
+                    pm_Settings::set('nameserverChanged','true');
+                    pm_Settings::set('setupCompleted','true');
+                    pm_settings::set('previousLocation','index/welcome');
+//                    sleep(10);
+                $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key')]);
+                }
+            } else{
+                if (pm_Settings::get('setupCompleted')) {
+                    $form->addElement('SimpleText', 'validkey2', [
+                        'value' => "Setup is Complete, You can now go to the Manage DNS Zones tab to enable some domains."
+                    ]);
+                    $form->addControlButtons(['sendTitle' => 'Go to Manage DNS Zones','cancelHidden' => true,'hideLegend'=>true]);
+                    if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
+                        $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'manageZones'))]);
+                    }
+                }
+            }
+        }
         $this->view->form = $form;
         $this->view->tabs = $this->_getTabs();
+
+        
     }
 
     public function managezonesAction() {
+        if (pm_Settings::get('mz_show_help')) {
+            echo "<h3>Manage DNS Zones Help.</h3>";
+            echo "To perform any operation on a SafeDNS Zone from Plesk, it must first be enabled<br><br>
+                  <h5>Sync Now</h5> 
+                  This will push an enabled zone to SafeDNS.<br>
+                  If a record already exists, it will be updated to match plesk.<br>
+                  If a record exists on SafeDNS but has been removed, (or didn't exist) on Plesk, it will be deleted<br><br>
+                  <h5>Automatic Sync</h6>
+                  When Plesk's internal DNS is updated, the domains that have this enabled, will be automatically Sychronised with SafeDNS.<br>
+                  <hr>";  
+            }
         $list = $this->_getZoneList();
         // List object for pm_View_Helper_RenderList
         $this->view->tabs = $this->_getTabs();
@@ -193,7 +257,9 @@ class IndexController extends pm_Controller_Action
     private function _getZoneList() {
         $data = [];
         $blueRefreshIcon= 'modules/safedns-plesk/icons/32/refresh.png';
-        $redPowerIcon= 'modules/safedns-plesk/icons/32/power-red.png';
+//        $redPowerIcon= 'modules/safedns-plesk/icons/32/power-red.png';
+///root/extensions/ext-plesk-safedns/htdocs/icons/64/Red-Offswitch.png
+        $redPowerIcon= 'modules/safedns-plesk/icons/64/Red-Offswitch.png';
         $bluePowerIcon= 'modules/safedns-plesk/icons/32/power-blue.png';
         $redCrossIcon= 'modules/safedns-plesk/icons/32/cross-red.png';
         $greenTickIcon= 'modules/safedns-plesk/icons/32/tick-green.png';
@@ -214,7 +280,7 @@ class IndexController extends pm_Controller_Action
                         // If current domain has enabled set to true
 
                         if (strcmp($zoneSettings[0], 'True') == 0) {
-                            $domainEnabledIcon=$bluePowerIcon;
+                            $domainEnabledIcon=$greenTickIcon;
                             $domainEnabledStatus=True;
                             $domainEnabledText='Y';
                             $newEnabledSetting='False';
@@ -222,7 +288,7 @@ class IndexController extends pm_Controller_Action
                             $toggleAutosyncLink=pm_Context::getActionUrl('index','toggle-autosync-zone').'/domain/'.$plesk_domain.'/new-autosync-setting/'.$newAutosyncSetting;
                             $deleteDomainLink=pm_Context::getActionUrl('index','add-task').'/type/delete-a-domain/domain/'.$plesk_domain;
                         } else {
-                            $domainEnabledIcon=$redPowerIcon;
+                            $domainEnabledIcon=$redCrossIcon;
                             $domainEnabledStatus=False;
                             $domainEnabledText='N';
                             $newEnabledSetting='True'; 
@@ -249,7 +315,7 @@ class IndexController extends pm_Controller_Action
 
                     } else {
                         // Save Domain with Default Settings
-                        $domainEnabledIcon=$redPowerIcon;
+                        $domainEnabledIcon=$redCrossIcon;
                         $domainEnabledStatus='False';
                         $lastSync='Never';
                         $domainEnabledText='N';
@@ -324,12 +390,45 @@ class IndexController extends pm_Controller_Action
 
         ]);
         pm_settings::set('previousLocation','index/manageZones');
+        if (pm_Settings::get('mz_show_help')) {
+            $mz_help_title='Hide Help';
+            $mz_help_descr='Hides Help Text';
+            $mz_help_link=pm_Context::getActionUrl('index', 'mz-help/new-help-setting/Hide');
+        } elseif (!pm_Settings::get('mz_show_help')) {
+            $mz_help_title='Show Help';
+            $mz_help_descr='Shows Help Text';
+            $mz_help_link=pm_Context::getActionUrl('index', 'mz-help/new-help-setting/Show');
+
+        }
+
         $list->setTools([[
-                'title' => 'Default Reset',
+                'title' => 'Reset to Default',
                 'description' => 'Reset all settings.',
                 'link' => pm_Context::getActionUrl('index', 'reset-zones'),
-
-
+            ],[ 
+                'title' => 'Enable All Domains',
+                'description' => 'Enable All Domains',
+                'link' => pm_Context::getActionUrl('index', 'mz-enable-all-domains/new-enabled-setting/True'),
+            ],[
+                'title' => 'Disable All Domains',
+                'description' => 'Enable All Domains',
+                'link' => pm_Context::getActionUrl('index', 'mz-enable-all-domains/new-enabled-setting/False'),
+            ],[
+                'title' => 'Enable All Autosync',
+                'description' => 'Enable All Autosync',
+                'link' => pm_Context::getActionUrl('index', 'mz-enable-all-autosync/new-enabled-setting/True'),
+            ],[
+                'title' => 'Disable All Autosync',
+                'description' => 'Disable All Autosync',
+                'link' => pm_Context::getActionUrl('index', 'mz-enable-all-autosync/new-enabled-setting/False'),
+            ],[
+                'title' => 'Sync All Enabled Domains',
+                'description' => 'Sync All Enabled Domains',
+                'link' => pm_Context::getActionUrl('index', 'add-task') . '/type/synchronise-all-domains',
+            ],[
+                'title' => $mz_help_title,
+                'description' => $mz_help_desc,
+                'link' => $mz_help_link,
             ],
         ]);
 
@@ -337,6 +436,74 @@ class IndexController extends pm_Controller_Action
         return $list;
         }
     }
+    public function mzEnableAllDomainsAction() {
+        $domInfo = $this->getDomainInfo();
+        $pleskDomainList = $domInfo->webspace->get->result;
+        if ($pleskDomainlist->status = 'ok') {
+            // Calculate how much % each action is worth. Set % to 0.
+            foreach ($pleskDomainList as $domain) {
+                if (isset($domain->data->gen_info->name)) {
+                    $plesk_domain=(string)$domain->data->gen_info->name;
+                    // Load the new setting from the next url parameter
+                    $newEnabledSetting = $this->getParam('new-enabled-setting');
+                    // Retrieve Stored Settings Array for domain
+                    $zoneSettingsX=pm_Settings::get('zoneSettings-'.$plesk_domain);
+                    // Explode the array's stored data from string to array
+                    $zoneSettings=explode("|",$zoneSettingsX);
+                    // Create new Array with changed setting
+                    $newZoneSettingsX=array($newEnabledSetting,$zoneSettings[1],$zoneSettings[2]);
+                    // Implode the array with new data, from array to string
+                    $newZoneSettings=implode("|",$newZoneSettingsX);
+                    // Save the modified string to Plesk key value storage
+                    pm_Settings::set('zoneSettings-'.$plesk_domain,$newZoneSettings);
+                }
+            }
+        }
+        $this->_redirect('index/manageZones');
+        
+    }
+    public function mzEnableAllAutosyncAction() {
+        $domInfo = $this->getDomainInfo();
+        $pleskDomainList = $domInfo->webspace->get->result;
+        if ($pleskDomainlist->status = 'ok') {
+            // Calculate how much % each action is worth. Set % to 0.
+            foreach ($pleskDomainList as $domain) {
+                if (isset($domain->data->gen_info->name)) {
+                    $plesk_domain=(string)$domain->data->gen_info->name;
+                    // Retrieve Stored Settings Array for domain
+                    $zoneSettingsX=pm_Settings::get('zoneSettings-'.$plesk_domain);
+                    // Explode the array's stored data from string to array
+                    $zoneSettings=explode("|",$zoneSettingsX);
+                    if (strcmp($zoneSettings[0], 'True') == 0) {
+                        $newEnabledSetting = $this->getParam('new-enabled-setting');
+                    } else {
+                        $this->_status->addMessage('warning', "Not all domains are enabled, soyou can't enable autosync for them.");
+                        $newEnabledSetting = $zoneSettings[2];
+                    }
+                     // Create new Array with changed setting
+                    $newZoneSettingsX=array($zoneSettings[0],$zoneSettings[1],$newEnabledSetting);
+                    // Implode the array with new data, from array to string
+                    $newZoneSettings=implode("|",$newZoneSettingsX);
+ 
+                    // Save the modified string to Plesk key value storage
+                    pm_Settings::set('zoneSettings-'.$plesk_domain,$newZoneSettings);
+                }
+            }
+        }
+        $this->_redirect('index/manageZones');
+    }
+    public function mzHelpAction() {
+        $helpSettingParam = $this->getParam('new-help-setting');
+        // Save the modified string to Plesk key value storage
+        if (strcmp($helpSettingParam, 'Show') == 0) {
+           pm_Settings::set('mz_show_help','Show'); 
+        } elseif (strcmp($helpSettingParam, 'Hide') == 0) {
+            pm_Settings::set('mz_show_help',null);
+        }
+        $this->_status->addMessage('warning', "Show Hide Help $helpSettingParam");
+        $this->_redirect('index/manageZones');
+    }
+
     public function listDataAction() {
         $list = $this->_getZoneList();
         // Json data from pm_View_List_Simple
@@ -376,7 +543,7 @@ class IndexController extends pm_Controller_Action
 
         // Implode the array with new data, from array to string
         $newZoneSettings=implode("|",$newZoneSettingsX);
-        var_dump($newZoneSettings);
+//        var_dump($newZoneSettings);
 
         // Save the modified string to Plesk key value storage
         pm_Settings::set('zoneSettings-'.$domainx,$newZoneSettings);
@@ -578,6 +745,8 @@ class IndexController extends pm_Controller_Action
         $tasks = $this->taskManager->getTasks(['task']);
         $i = count($tasks) - 1;
         while ($i >= 0) {
+            $this->safedns_write_log("\ncanceldonetask\n");
+            $this->safedns_write_log($tasks[$i]->getStatus);
             if ($tasks[$i]->getStatus() != pm_LongTask_Task::STATUS_DONE) {
                 $this->taskManager->cancel($tasks[$i]);
                 break;

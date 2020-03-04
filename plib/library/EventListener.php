@@ -25,17 +25,30 @@ class Modules_SafednsPlesk_EventListener implements EventListener
 
     public function handleEvent($objectType, $objectId, $action, $oldValues, $newValues)
     {
-        switch ($action) {
-            case 'domain_dns_update' :
-                // a domain's dns zone was updated ,sync all enabled zones
-                // there's no api way to find out what domain it was, we'd have to parse the action log
-                if (is_null($this->taskManager)) {
-                    $this->taskManager = new pm_LongTask_Manager();
+        
+        $mynewValues=implode("|",$newValues);
+        $newValuesArray=explode("|",$mynewValues);
+        $updatedZone=$newValuesArray[0];
+        // Retrieve Stored Settings Array for domain
+        $zoneSettingsX=pm_Settings::get('zoneSettings-'.$updatedZone);
+        // Explode the array's stored data from string to array
+        $zoneSettings=explode("|",$zoneSettingsX);
+        if (strcmp($zoneSettings[0], 'True') == 0) {
+            if (strcmp($zoneSettings[2], 'True') == 0) {
+                $this->safedns_write_log("$updatedZone's DNS Was updated in Plesk, Synchronising with SafeDNS");
+                switch ($action) {
+                    case 'domain_dns_update' :
+                        // a domain's dns zone was updated ,sync all enabled zones
+                        if (is_null($this->taskManager)) {
+                            $this->taskManager = new pm_LongTask_Manager();
+                        }
+                        $this->safedns_write_log("$updatedZone's DNS Was updated in Plesk, Synchronising with SafeDNS");
+                        pm_Settings::set('selectedDomainSychronise', $updatedZone);
+                        $task=new Modules_SafednsPlesk_Task_SynchroniseADomain();
+                        $this->taskManager->start($task, $domain);
+                        break;
                 }
-                $this->safedns_write_log("Plesk DNS Was updated, Synchonising enabled zones with safedns");
-                $task=new Modules_SafednsPlesk_Task_AutosyncEnabledDomains();
-                $this->taskManager->start($task, $domain);
-                break;
+            }
         }
     }
 }

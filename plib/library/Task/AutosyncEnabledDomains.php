@@ -1,7 +1,7 @@
 <?php
-class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
+class Modules_SafednsPlesk_Task_AutosyncEnabledDomains extends pm_LongTask_Task
 {
-    const UID = 'synchronise-all-domains';
+    const UID = 'autosync-enabled-domains';
     public $trackProgress = true;
     private $sleep = 1;
     private static $progressText = 'Progress is ';
@@ -38,7 +38,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
 //        }
 //        pm_Settings::set('safedns_all_domains_array',json_encode($safedns_domains));
 //    }
-
+//
     public function request_safedns_zones($api_url){
     //    $get_data = call_SafeDNS_API('GET',$api_url."/zones?per_page=50&page=2",false);
         $safedns_domains=array();
@@ -53,13 +53,13 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
         echo "\n CeilP ;  $safedns_zone_pages_ceil\n";
         foreach (range(1, $safedns_zone_pages_ceil) as $page_number) {
             echo "\nPage $page_number\n";
-            $get_data = call_SafeDNS_API('GET',$api_url."/zones?per_page=50&page=".$page_number,false);
+            $get_data = $this->SafeDNS_API_Call('GET',$api_url."/zones?per_page=50&page=".$page_number,false);
             $response = json_decode($get_data, true);
             $data = $response;
             global $safedns_domains;
 
             $datax = explode(",",json_encode($data));
-
+    
             foreach ($datax as $val) {
                 if (strpos($val, 'name') !== false){
                     $exploded=explode(":",$val);
@@ -70,8 +70,8 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
                 }
             }
         }
-        pm_Settings::set('safedns_all_domains_array',json_encode($safedns_domains));
 //        print_r($safedns_domains);
+        pm_Settings::set('safedns_all_domains_array',json_encode($safedns_domains));
     }
 
 /*
@@ -137,7 +137,6 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
         }
     //    return $records_array;
     }
-
 
     public function check_create_zone($api_url,$safedns_domains,$input_zone){
         $safedns_domains=json_decode(pm_Settings::get('safedns_all_domains_array'));
@@ -364,7 +363,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
             }
         }
        
-        pm_Settings::set('plesk_synchronise_all_domain_current_record_array',json_encode($plesk_domain_records_array));
+        pm_Settings::set('plesk_autosync_enabled_domain_current_record_array',json_encode($plesk_domain_records_array));
     }
 
 
@@ -382,7 +381,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
         $list = $domInfo->webspace->get->result;
         if ($list->status = 'ok') {
             foreach ($list as $domain) {
-            // Create an array of domains that are enabled
+            // Create an array of domains that have autosync enabled
                 if (isset($domain->data->gen_info->name)) {
                     $plesk_domain=$domain->data->gen_info->name;
 
@@ -391,7 +390,9 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
                     $zoneSettings=explode("|",$zoneSettingsX);
                     // If current domain has enabled set to true
                     if (strcmp($zoneSettings[0], 'True') == 0) {
-                        $enabledDomains[] = (string)$plesk_domain;
+                        if (strcmp($zoneSettings[2], 'True') == 0) {
+                            $enabledDomains[] = (string)$plesk_domain;
+                        }
                     }
                 }
             }
@@ -402,7 +403,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
             foreach ($enabledDomains as $plesk_domain) {
                 $this->updateProgress($currentPercent);
                 $currentPercent=($currentPercent+$actionPercent);
-                $this->safedns_write_log("Synchronising $plesk_domain ");
+                $this->safedns_write_log("Auto Synchronising $plesk_domain ");
                 pm_Settings::set('taskCurrentDomain',$plesk_domain);
                 pm_Settings::set('recordsChanged',null);
                 pm_Settings::set('recordsDeleted',null);
@@ -415,7 +416,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
                 
                 $safedns_records_arrayx=json_encode($safedns_records_array);
                 $this->get_plesk_records_for_domain($plesk_domain);
-                $plesk_domain_records_array=json_decode(pm_Settings::get('plesk_synchronise_all_domain_current_record_array'));
+                $plesk_domain_records_array=json_decode(pm_Settings::get('plesk_autosync_enabled_domain_current_record_array'));
                     
                 global $safedns_records_array;
                 $this->request_safedns_record_for_zone($api_url,$plesk_domain);
@@ -491,14 +492,14 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
             case static::STATUS_RUNNING:
                 pm_Settings::set('taskLock','locked');
                 $taskCurrentDomain=pm_Settings::get('taskCurrentDomain');
-                return "Synchronising $taskCurrentDomain";
+                return "Auto Synchronising $taskCurrentDomain";
             case static::STATUS_DONE:
-                return ('Successful Task: Sync All Domains With SafeDNS');
+                return ('Successful Task: Autosync Enabled Domains With SafeDNS');
             case static::STATUS_ERROR:
-                return ('Task Error: Sync All Domains With SafeDNS');
+                return ('Task Error: Autosync Enabled Domains With SafeDNS');
 
             case static::STATUS_NOT_STARTED:
-                return ('Task Not Started: Sync All Domains');
+                return ('Task Not Started: Autosync Enabled Domains');
 
         }
         return '';
