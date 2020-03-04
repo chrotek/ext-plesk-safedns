@@ -80,26 +80,61 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
         return $result;
     }
 
-    private function request_safedns_zones($api_url){
-        $get_data = $this->SafeDNS_API_Call('GET',$api_url."/zones?per_page=50",false);
-        $response = json_decode($get_data, true);
-        $data = $response;
+//    private function request_safedns_zones($api_url){
+//        $get_data = $this->SafeDNS_API_Call('GET',$api_url."/zones?per_page=50",false);
+//        $response = json_decode($get_data, true);
+//        $data = $response;
+//        $safedns_domains=array();
+//        global $safedns_domains;
+//    
+//        $datax = explode(",",json_encode($data));
+//    
+//        foreach ($datax as $val) {
+//            if (strpos($val, 'name') !== false){
+//              $exploded=explode(":",$val);
+//              $domainx=end($exploded);
+//              $domain=str_replace('"','',$domainx);
+//              $safedns_domains[] = $domain;
+//          }
+//      }
+//      pm_Settings::set('safedns_all_domains_array',json_encode($safedns_domains));
+//  }
+
+    public function request_safedns_zones($api_url){
         $safedns_domains=array();
-        global $safedns_domains;
-    
-        $datax = explode(",",json_encode($data));
-    
-        foreach ($datax as $val) {
-            if (strpos($val, 'name') !== false){
-                $exploded=explode(":",$val);
-                $domainx=end($exploded);
-                $domain=str_replace('"','',$domainx);
-                $safedns_domains[] = $domain;
+        global $plesk_domains;
+        $plesk_domains=[];
+        $plesk_all_domains=pm_Domain::getAllDomains();
+        $plesk_domain_count=count($plesk_all_domains);
+        echo "\nplesk_domain_count $plesk_domain_count \n";
+        $safedns_zone_pages_count=($plesk_domain_count/50);
+        $safedns_zone_pages_ceil=ceil($safedns_zone_pages_count);
+        echo "\n Pages ;  $safedns_zone_pages_count\n";
+        echo "\n CeilP ;  $safedns_zone_pages_ceil\n";
+        foreach (range(1, $safedns_zone_pages_ceil) as $page_number) {
+            echo "\nPage $page_number\n";
+            $get_data = $this->SafeDNS_API_Call('GET',$api_url."/zones?per_page=50&page=".$page_number,false);
+            $response = json_decode($get_data, true);
+            $data = $response;
+            global $safedns_domains;
+
+            $datax = explode(",",json_encode($data));
+
+            foreach ($datax as $val) {
+                if (strpos($val, 'name') !== false){
+                    $exploded=explode(":",$val);
+                    $domainx=end($exploded);
+                    $domain=str_replace('"','',$domainx);
+                    $safedns_domains[] = $domain;
+
+                }
             }
         }
+//        print_r($safedns_domains);
         pm_Settings::set('safedns_all_domains_array',json_encode($safedns_domains));
     }
-    
+
+/*    
     public function request_safedns_record_for_zone($api_url,$zone_name){
         $get_data = $this->SafeDNS_API_Call('GET',$api_url."/zones/".$zone_name."/records?per_page=50",false);
         $response = json_decode($get_data, true);
@@ -110,7 +145,7 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
         /* "ID : " .$val['id']."\n";
            "NAME : ".$val['name']."\n";
            "TYPE : ".$val['type']."\n";
-           "CONTENT : ".$val['content']."\n";         */
+           "CONTENT : ".$val['content']."\n";         *//*
             if(strcasecmp($val['type'], 'MX') == 0){
                 array_push($safedns_records_array,$val['id'].",".$val['name'].",".$val['type'].",".$val['content'].",".$val['priority']);
             } else {
@@ -120,7 +155,50 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
     //    return $safedns_records_array;
     
     }
+*/
+
+    public function request_safedns_record_for_zone($api_url,$zone_name){
+        global $safedns_records_array;
+    //    global $records_array;
+        $safedns_records_array = array();
+        // Calculate how many pages there will be. 50 records per page
+        // TO DO - Do this with plesk's extensions API instead
+        $plesk_records_for_domain_x = (shell_exec('plesk bin dns --info '.$zone_name.'| grep -v "SUCCESS: Getting information for Domain"'));
+        $plesk_domain_records_array=[];
+        $plesk_records_for_domain_y = explode("\n",$plesk_records_for_domain_x);
+        $ii=0;
+        for($i = 0; $i < (count($plesk_records_for_domain_y)+1); ++$i){
+            if (isset($plesk_records_for_domain_y[$i])) {
+                if (!empty($plesk_records_for_domain_y[$i])) {
+                    ++$ii;
+                }
+            }
+        }
+        $recordCount=$ii;
+        $safedns_records_pages_count=($recordCount/50);
+        $safedns_records_pages_ceil=ceil($safedns_records_pages_count);
+        foreach (range(1, $safedns_records_pages_ceil) as $page_number) {
     
+        ////////////////////////////////
+            $get_data = $this->SafeDNS_API_Call('GET',$api_url."/zones/".$zone_name."/records?per_page=50&page=".$page_number,false);
+            $response = json_decode($get_data, true);
+            $data = $response;
+            foreach ($data['data'] as $val) {
+        /* echo "ID : " .$val['id']."\n";
+           echo "NAME : ".$val['name']."\n";
+           echo "TYPE : ".$val['type']."\n";
+           echo "CONTENT : ".$val['content']."\n";         */
+                if(strcasecmp($val['type'], 'MX') == 0){
+                    array_push($safedns_records_array,$val['id'].",".$val['name'].",".$val['type'].",".$val['content'].",".$val['priority']);
+                } else {
+                    array_push($safedns_records_array,$val['id'].",".$val['name'].",".$val['type'].",".$val['content']);
+                }
+            }
+        }
+    //    return $records_array;
+    }
+
+
     public function check_create_zone($api_url,$safedns_domains,$input_zone){
         $safedns_domains=json_decode(pm_Settings::get('safedns_all_domains_array'));
         if (in_array($input_zone, $safedns_domains))
