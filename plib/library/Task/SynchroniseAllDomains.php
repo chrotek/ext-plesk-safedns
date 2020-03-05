@@ -9,7 +9,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
     public function safedns_write_log($log_msg) {
         $log_filename = "/var/log/plesk/ext-plesk-safedns";
         $log_timestamp= date("d-m-Y_H:i:s");
-        $log_prepend = $log_timestamp." | ";
+        $log_prepend = $log_timestamp." | Synchronise All Domains | ";
         if (!file_exists($log_filename)) {
             // create directory/folder uploads.
             mkdir($log_filename, 0770, true);
@@ -19,28 +19,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
         file_put_contents($log_file_data, $log_prepend . $log_msg . "\n", FILE_APPEND);
     }
 
-//    private function request_safedns_zones($api_url){
-//        $get_data = $this->SafeDNS_API_Call('GET',$api_url."/zones?per_page=50",false);
-//        $response = json_decode($get_data, true);
-//        $data = $response;
-//        $safedns_domains=array();
-//        global $safedns_domains;
-//
-//        $datax = explode(",",json_encode($data));
-//
-//        foreach ($datax as $val) {
-//            if (strpos($val, 'name') !== false){
-//                $exploded=explode(":",$val);
-//                $domainx=end($exploded);
-//                $domain=str_replace('"','',$domainx);
-//                $safedns_domains[] = $domain;
-//            }
-//        }
-//        pm_Settings::set('safedns_all_domains_array',json_encode($safedns_domains));
-//    }
-
     public function request_safedns_zones($api_url){
-    //    $get_data = call_SafeDNS_API('GET',$api_url."/zones?per_page=50&page=2",false);
         $safedns_domains=array();
         global $plesk_domains;
         $plesk_domains=[];
@@ -53,7 +32,7 @@ class Modules_SafednsPlesk_Task_SynchroniseAllDomains extends pm_LongTask_Task
         echo "\n CeilP ;  $safedns_zone_pages_ceil\n";
         foreach (range(1, $safedns_zone_pages_ceil) as $page_number) {
             echo "\nPage $page_number\n";
-            $get_data = call_SafeDNS_API('GET',$api_url."/zones?per_page=50&page=".$page_number,false);
+            $get_data = $this->SafeDNS_API_Call('GET',$api_url."/zones?per_page=50&page=".$page_number,false);
             $response = json_decode($get_data, true);
             $data = $response;
             global $safedns_domains;

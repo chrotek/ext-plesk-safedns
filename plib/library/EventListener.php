@@ -46,6 +46,15 @@ class Modules_SafednsPlesk_EventListener implements EventListener
                         pm_Settings::set('selectedDomainSychronise', $updatedZone);
                         $task=new Modules_SafednsPlesk_Task_SynchroniseADomain();
                         $this->taskManager->start($task, $domain);
+                        // Clear completed tasks
+                        $tasks = $this->taskManager->getTasks(['task_synchroniseadomain']);
+                        $i = count($tasks) - 1;
+                        while ($i >= 0) {
+                            if ($tasks[$i]->getStatus() == pm_LongTask_Task::STATUS_DONE) {
+                                $this->taskManager->cancel($tasks[$i]);
+                            }
+                            $i--;
+                        } 
                         break;
                 }
             }

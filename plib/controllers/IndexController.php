@@ -171,12 +171,13 @@ class IndexController extends pm_Controller_Action
         ]);
         if (!pm_Settings::get('validKey')) {
             $form->addElement('SimpleText', 'enterkey', [
-                'value' => "To get started, enter an API Key below and click Save"
+                'value' => "To get started, enter an API Key below and click Save."
             ]);
-
             $form->addElement('text', 'api_key', ['label' => 'Please enter API Key', 'value' => pm_Settings::get('api_key'), 'style' => 'width: 40%;']);
             $form->addControlButtons(['sendTitle' => 'Save','cancelHidden' => true,'hideLegend'=>true]);
-
+            $form->addElement('SimpleText', 'enterkey2', [
+                'value' => 'When you get the "API Key is Valid" popup, Reload this page for the next instructions.'
+            ]);
             if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
                 if ($form->getValue('api_key')) {
                     $this->_api_key = $form->getValue('api_key');
@@ -186,7 +187,6 @@ class IndexController extends pm_Controller_Action
                 pm_settings::set('previousLocation','index/welcome');
                 $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key')]);
             }
-
         } else {
             $form->addElement('SimpleText', 'validkey', [
                 'value' => "Great! The key is valid."
@@ -232,8 +232,6 @@ class IndexController extends pm_Controller_Action
         }
         $this->view->form = $form;
         $this->view->tabs = $this->_getTabs();
-
-        
     }
 
     public function managezonesAction() {
@@ -285,7 +283,7 @@ class IndexController extends pm_Controller_Action
                             $domainEnabledText='Y';
                             $newEnabledSetting='False';
                             $syncNowLink=pm_Context::getActionUrl('index','add-task').'/type/synchronise-a-domain/domain/'.$plesk_domain;
-                            $toggleAutosyncLink=pm_Context::getActionUrl('index','toggle-autosync-zone').'/domain/'.$plesk_domain.'/new-autosync-setting/'.$newAutosyncSetting;
+//                            $toggleAutosyncLink=pm_Context::getActionUrl('index','toggle-autosync-zone').'/domain/'.$plesk_domain.'/new-autosync-setting/'.$newAutosyncSetting;
                             $deleteDomainLink=pm_Context::getActionUrl('index','add-task').'/type/delete-a-domain/domain/'.$plesk_domain;
                         } else {
                             $domainEnabledIcon=$redCrossIcon;
@@ -294,6 +292,7 @@ class IndexController extends pm_Controller_Action
                             $newEnabledSetting='True'; 
                             $syncNowLink=pm_Context::getActionUrl('index','synchronise-disabled-zone-fail/domain/').$plesk_domain;
                             $toggleAutosyncLink=pm_Context::getActionUrl('index','autosync-disabled-zone-fail/domain/').$plesk_domain;
+//                            $toggleAutosyncLink=pm_Context::getActionUrl('index','toggle-autosync-zone').'/domain/'.$plesk_domain.'/new-autosync-setting/'.$newAutosyncSetting;
                             $deleteDomainLink=pm_Context::getActionUrl('index','delete-disabled-zone-fail/domain/').$plesk_domain;
                         };
                         // Load LastSync time. Currently being misused as a debug function.
@@ -310,7 +309,8 @@ class IndexController extends pm_Controller_Action
                             $autosyncEnabledText='N';
                             $newAutosyncSetting='True';
                         };
- 
+                        $toggleAutosyncLink=pm_Context::getActionUrl('index','toggle-autosync-zone').'/domain/'.$plesk_domain.'/new-autosync-setting/'.$newAutosyncSetting;
+
                         // Block manual sync if domain is not enabled
 
                     } else {
@@ -741,18 +741,25 @@ class IndexController extends pm_Controller_Action
     }
     public function cancelDoneTaskAction()
     {
+        
         pm_Log::info('Try get tasks');
-        $tasks = $this->taskManager->getTasks(['task']);
+        $tasks = $this->taskManager->getTasks(['task_synchroniseadomain']);
+//        $testtasks = $this->taskManager->getTasks(['task_synchroniseadomain']);
+//        $xyz=count($tasks);
+//        $this->safedns_write_log("TASKS: $xyz");
         $i = count($tasks) - 1;
         while ($i >= 0) {
             $this->safedns_write_log("\ncanceldonetask\n");
             $this->safedns_write_log($tasks[$i]->getStatus);
-            if ($tasks[$i]->getStatus() != pm_LongTask_Task::STATUS_DONE) {
+            if ($tasks[$i]->getStatus() == pm_LongTask_Task::STATUS_DONE) {
                 $this->taskManager->cancel($tasks[$i]);
-                break;
+                //break;
             }
             $i--;
         }
+        $this->safedns_write_log("canceldonetask-END");
+        $this->_status->addMessage('info', "cancelDoneTaskAction");
+
         $this->_redirect('index/index');
     }
 
