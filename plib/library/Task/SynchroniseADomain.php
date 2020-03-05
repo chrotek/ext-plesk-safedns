@@ -13,7 +13,7 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
     public function safedns_write_log($log_msg) {
         $log_filename = "/var/log/plesk/ext-plesk-safedns";
         $log_timestamp= date("d-m-Y_H:i:s");
-        $log_prepend = $log_timestamp." | ";
+        $log_prepend = $log_timestamp." | Synchronise A Domain | ";
         if (!file_exists($log_filename)) {
             // create directory/folder uploads.
             mkdir($log_filename, 0770, true);
