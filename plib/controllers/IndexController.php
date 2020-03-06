@@ -13,7 +13,7 @@ class IndexController extends pm_Controller_Action
         if (is_null($this->taskManager)) {
             $this->taskManager = new pm_LongTask_Manager();
         }
-        $this->view->pageTitle = 'SafeDNS Plesk Integration';
+        $this->view->pageTitle = 'UKFast SafeDNS Plesk Integration';
     }
 
     public function safedns_write_log($log_msg) {
@@ -363,12 +363,13 @@ class IndexController extends pm_Controller_Action
                 'title' => 'Delete Zone <br> (From SafeDNS)',
                 'noEscape' => true,
                 'sortable' => false,
-            ],
-            'column-7-debug' => [
-                'title' => 'Debug. (Settings array)',
-                'noEscape' => true,
-                'sortable' => false,
+            //],
             ]
+//            'column-7-debug' => [
+//                'title' => 'Debug. (Settings array)',
+//                'noEscape' => true,
+//                'sortable' => false,
+//            ]
 
         ]);
         pm_settings::set('previousLocation','index/manageZones');
