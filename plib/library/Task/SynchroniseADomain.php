@@ -159,6 +159,7 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
 
     public function request_safedns_record_for_zone($api_url,$zone_name){
         global $safedns_records_array;
+
     //    global $records_array;
         $safedns_records_array = array();
         // Calculate how many pages there will be. 50 records per page
@@ -174,8 +175,9 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
                 }
             }
         }
-        $recordCount=$ii;
-        $safedns_records_pages_count=($recordCount/50);
+        $pleskRecordCount=$ii;
+        pm_Settings::set('syncDomain_pleskRecordCount',$pleskRecordCount);
+        $safedns_records_pages_count=($pleskRecordCount/50);
         $safedns_records_pages_ceil=ceil($safedns_records_pages_count);
         foreach (range(1, $safedns_records_pages_ceil) as $page_number) {
     
@@ -424,16 +426,21 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
         pm_Settings::set('recordsDeleted',null);
         
         
-        $this->updateProgress($currentPercent);
-        $currentPercent=($currentPercent+$actionPercent);                     
+//        $this->updateProgress($currentPercent);
+//        $currentPercent=($currentPercent+$actionPercent);                     
         $this->check_create_zone($api_url,$safedns_domains,$plesk_domain);
         
         $safedns_records_arrayx=json_encode($safedns_records_array);
         $this->get_plesk_records_for_domain($plesk_domain);
         $plesk_domain_records_array=json_decode(pm_Settings::get('plesk_synchronise_all_domain_current_record_array'));
-        
+
         global $safedns_records_array;
         $this->request_safedns_record_for_zone($api_url,$plesk_domain);
+        $pleskRecordCount=pm_Settings::get('syncDomain_pleskRecordCount');
+        $this->safedns_write_log("CountTest:$pleskRecordCount:");
+        $actionPercent=(100/$pleskRecordCount);
+        $currentPercent=0;
+
         foreach ($plesk_domain_records_array as $plesk_domain_current_record) {
             $plesk_domain_current_record_array=explode(",",$plesk_domain_current_record);
             $plesk_record_name=rtrim($plesk_domain_current_record_array[0], ".");
@@ -471,6 +478,10 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
                 $this->safedns_write_log("ERROR. testResult was ".$test_result_array['testResult']." and the script doesn't know how to handle that");
             }
             $rrCount++;
+            $currentPercent=($currentPercent+$actionPercent);
+            //$this->safedns_write_log("CurrentPC :$currentPercent");
+            //sleep(1);
+            $this->updateProgress($currentPercent);
         }
         $this->delete_plesk_missing_record_from_safedns($api_url,$plesk_domain,$plesk_domain_records_array,$safedns_records_array);
          if (!pm_Settings::get('recordsChanged')) {
@@ -480,9 +491,6 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
                 $this->safedns_write_log("No Records Created or Updated");
             }
         }
-        $logfile='/testlog/safednsapi-tasks.log';
-        $contents = ob_get_flush();
-        file_put_contents($logfile,$contents);
         // Update Last Sync Time
         // Load the new setting from the next url parameter
         $timestamp = date("H:i:s d-m-Y");;
@@ -498,7 +506,6 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
 
         // Implode the array with new data, from array to string
         $newZoneSettings=implode("|",$newZoneSettingsX);
-        var_dump($newZoneSettings);
 
         // Save the modified string to Plesk key value storage
         pm_Settings::set('zoneSettings-'.$plesk_domain,$newZoneSettings);

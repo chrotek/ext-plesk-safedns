@@ -1,1 +1,0 @@
- This folder contains screenshots and icons for the catalog. It is required to be able to get listed within the official Plesk extension catalog.
