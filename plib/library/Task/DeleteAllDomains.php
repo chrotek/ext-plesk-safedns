@@ -1,6 +1,4 @@
 <?php
-   // Modules_SafednsPlesk_Task_SynchroniseDomains
-//class Modules_SafednsPlesk_Task_Succeed extends pm_LongTask_Task
 class Modules_SafednsPlesk_Task_DeleteAllDomains extends pm_LongTask_Task
 {
     const UID = 'delete-all-domains';
@@ -81,7 +79,6 @@ class Modules_SafednsPlesk_Task_DeleteAllDomains extends pm_LongTask_Task
     {
         $this->safedns_write_log("Starting Task - Delete All Zones");
         $api_url="https://api.ukfast.io/safedns/v1";
-//        ob_start();
         pm_Settings::set('taskLock','locked');
         $enabledDomains = [];
         $domInfo = $this->getDomainInfo();
@@ -112,11 +109,7 @@ class Modules_SafednsPlesk_Task_DeleteAllDomains extends pm_LongTask_Task
                 $this->SafeDNS_API_Call('DELETE',$api_url."/zones/".$plesk_domain,false);
                 
             }
-//        $logfile='/testlog/safednsapi-tasks.log';
-//        $contents = ob_get_flush();
-//        file_put_contents($logfile,$contents);
         }
-
     }
 
     public function statusMessage()
