@@ -2,13 +2,14 @@
 <!-- Copyright 1999-2018. Plesk International GmbH. -->
 <module>
   <id>safedns-plesk</id>
-  <name>safedns-plesk</name>
-  <description>This extension provides the functionality needed for integration with SafeDNS.</description>
+  <name>UKFast SafeDNS</name>
+<!--  <name>safedns-plesk</name> -->
+  <description>This extension provides the functionality needed for Plesk DNS records to be synchronised with UKFast's SafeDNS Service.</description>
   <category>dns</category>
   <category>clouds</category>
-  <version>1.0.1</version>
+  <version>0.9</version>
   <release>1</release>
-  <vendor>chrotek</vendor>
+  <vendor>UKFast</vendor>
   <url>https://github.com/chrotek/ext-plesk-safedns</url>
   <plesk_min_version>12.0.18</plesk_min_version>
   <!--Localized descriptions below-->

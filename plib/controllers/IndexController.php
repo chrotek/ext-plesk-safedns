@@ -13,13 +13,13 @@ class IndexController extends pm_Controller_Action
         if (is_null($this->taskManager)) {
             $this->taskManager = new pm_LongTask_Manager();
         }
-        $this->view->pageTitle = 'SafeDNS Plesk Integration';
+        $this->view->pageTitle = 'UKFast SafeDNS Plesk Integration';
     }
 
     public function safedns_write_log($log_msg) {
         $log_filename = "/var/log/plesk/ext-plesk-safedns";
         $log_timestamp= date("d-m-Y_H:i:s");
-        $log_prepend = $log_timestamp." | ";
+        $log_prepend = $log_timestamp." | IndexController (GUI) | ";
         if (!file_exists($log_filename)) {
             // create directory/folder uploads.
             mkdir($log_filename, 0770, true);
@@ -31,18 +31,11 @@ class IndexController extends pm_Controller_Action
 
     public function addTaskAction()
     {
-     //   $this->cancelAllTaskAction();
         $domainId = $this->getParam('domainId', -1);
         $domainName = $this->getParam('domain');
-//        $type = $this->getParam('type', 'succeed');
         $domain = $domainId != -1 ? new pm_Domain($domainId) : null;
         $type = $this->getParam('type', 'succeed');
         pm_Log::info("Create '{$type}' task and set params");
-//        $task = $type === 'succeed'
-//            ? new Modules_SafednsPlesk_Task_Succeed()
-//            : new Modules_SafednsPlesk_Task_Fail();
-
-//        $this->cancelAllTaskAction();
 
         // Fail if a task is already running
         if (pm_Settings::get('taskLock')) {
@@ -50,6 +43,7 @@ class IndexController extends pm_Controller_Action
         } else {
             // Clear other taks
             $this->taskManager->cancelAllTasks();
+            // Set task Type based on Params passed
             if ($type == 'test-api-key') {
                 $task=new Modules_SafednsPlesk_Task_TestApiKey();
             } elseif (!pm_Settings::get('validKey')) {
@@ -70,17 +64,11 @@ class IndexController extends pm_Controller_Action
                 $task=new Modules_SafednsPlesk_Task_DeleteADomain();
             }
         }
-//        $task->setParams([
-//            'p1' => 1,
-//            'p2' => 2,
-//        ]);
-//        $task->setParam('p3', 3);
 
         if (isset($domain)) {
             $task->setParam('domainName', $domain->getName());
         }
         $this->taskManager->start($task, $domain);
-//        $this->cancelAllAction();
         $this->_redirect(pm_settings::get('previousLocation'));
     }
 
@@ -157,7 +145,7 @@ class IndexController extends pm_Controller_Action
 
     public function indexAction()
     {
-        // Default action is formAction
+        // If no specific page was requested, Default to Welcome 
         $this->_forward('welcome');
 
 
@@ -215,7 +203,6 @@ class IndexController extends pm_Controller_Action
                     pm_Settings::set('nameserverChanged','true');
                     pm_Settings::set('setupCompleted','true');
                     pm_settings::set('previousLocation','index/welcome');
-//                    sleep(10);
                 $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key')]);
                 }
             } else{
@@ -247,7 +234,6 @@ class IndexController extends pm_Controller_Action
                   <hr>";  
             }
         $list = $this->_getZoneList();
-        // List object for pm_View_Helper_RenderList
         $this->view->tabs = $this->_getTabs();
         $this->view->list = $list;
     }
@@ -255,8 +241,6 @@ class IndexController extends pm_Controller_Action
     private function _getZoneList() {
         $data = [];
         $blueRefreshIcon= 'modules/safedns-plesk/icons/32/refresh.png';
-//        $redPowerIcon= 'modules/safedns-plesk/icons/32/power-red.png';
-///root/extensions/ext-plesk-safedns/htdocs/icons/64/Red-Offswitch.png
         $redPowerIcon= 'modules/safedns-plesk/icons/64/Red-Offswitch.png';
         $bluePowerIcon= 'modules/safedns-plesk/icons/32/power-blue.png';
         $redCrossIcon= 'modules/safedns-plesk/icons/32/cross-red.png';
@@ -283,7 +267,6 @@ class IndexController extends pm_Controller_Action
                             $domainEnabledText='Y';
                             $newEnabledSetting='False';
                             $syncNowLink=pm_Context::getActionUrl('index','add-task').'/type/synchronise-a-domain/domain/'.$plesk_domain;
-//                            $toggleAutosyncLink=pm_Context::getActionUrl('index','toggle-autosync-zone').'/domain/'.$plesk_domain.'/new-autosync-setting/'.$newAutosyncSetting;
                             $deleteDomainLink=pm_Context::getActionUrl('index','add-task').'/type/delete-a-domain/domain/'.$plesk_domain;
                         } else {
                             $domainEnabledIcon=$redCrossIcon;
@@ -292,7 +275,6 @@ class IndexController extends pm_Controller_Action
                             $newEnabledSetting='True'; 
                             $syncNowLink=pm_Context::getActionUrl('index','synchronise-disabled-zone-fail/domain/').$plesk_domain;
                             $toggleAutosyncLink=pm_Context::getActionUrl('index','autosync-disabled-zone-fail/domain/').$plesk_domain;
-//                            $toggleAutosyncLink=pm_Context::getActionUrl('index','toggle-autosync-zone').'/domain/'.$plesk_domain.'/new-autosync-setting/'.$newAutosyncSetting;
                             $deleteDomainLink=pm_Context::getActionUrl('index','delete-disabled-zone-fail/domain/').$plesk_domain;
                         };
                         // Load LastSync time. Currently being misused as a debug function.
@@ -381,12 +363,13 @@ class IndexController extends pm_Controller_Action
                 'title' => 'Delete Zone <br> (From SafeDNS)',
                 'noEscape' => true,
                 'sortable' => false,
-            ],
-            'column-7-debug' => [
-                'title' => 'Debug. (Settings array)',
-                'noEscape' => true,
-                'sortable' => false,
+            //],
             ]
+//            'column-7-debug' => [
+//                'title' => 'Debug. (Settings array)',
+//                'noEscape' => true,
+//                'sortable' => false,
+//            ]
 
         ]);
         pm_settings::set('previousLocation','index/manageZones');
@@ -500,7 +483,7 @@ class IndexController extends pm_Controller_Action
         } elseif (strcmp($helpSettingParam, 'Hide') == 0) {
             pm_Settings::set('mz_show_help',null);
         }
-        $this->_status->addMessage('warning', "Show Hide Help $helpSettingParam");
+        //$this->_status->addMessage('warning', "Show Hide Help $helpSettingParam");
         $this->_redirect('index/manageZones');
     }
 
@@ -549,7 +532,7 @@ class IndexController extends pm_Controller_Action
         pm_Settings::set('zoneSettings-'.$domainx,$newZoneSettings);
         
         // Notification
-        $this->_status->addMessage('info', "enableZoneAction domain:$domainx new setting:$newEnabledSetting");
+        //$this->_status->addMessage('info', "enableZoneAction domain:$domainx new setting:$newEnabledSetting");
 
         // Redirect to manageZones
         $this->_redirect('index/manageZones');
@@ -579,7 +562,7 @@ class IndexController extends pm_Controller_Action
         pm_Settings::set('zoneSettings-'.$domainx,$newZoneSettings);
 
         // Notification
-        $this->_status->addMessage('info', "enableAutosyncAction domain:$domainx new setting:$newEnabledSetting");
+        //$this->_status->addMessage('info', "enableAutosyncAction domain:$domainx new setting:$newEnabledSetting");
 
         // Redirect to manageZones
         $this->_redirect('index/manageZones');
@@ -599,7 +582,6 @@ class IndexController extends pm_Controller_Action
                 if (isset($domain->data->gen_info->name)) {
                     $plesk_domain=(string)$domain->data->gen_info->name;
                     pm_Settings::set('zoneSettings-'.$plesk_domain,null);
-
                 }
             }
         }
@@ -636,14 +618,9 @@ class IndexController extends pm_Controller_Action
             $this->_status->addMessage('warning', 'Please wait for current task to finish');
             $this->view->form = $form;                    
         }
-
-        // Set the description text
         $this->view->output_description = 'Synchronise a Domain';
-
         $domInfo = $this->getDomainInfo();
         $list = $domInfo->webspace->get->result;
-
-//        $domainSelector[-1] = 'Global';
 
         if ($list->status = 'ok') {
             foreach ($list as $domain) {
@@ -663,7 +640,6 @@ class IndexController extends pm_Controller_Action
 
         // Process the form - syncronise records for a specific domain
         if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
-//            pm_Settings::set('selectedDomainSychronise', "NO DOMAIN SELECTED");
             pm_Settings::set('selectedDomainSychronise', $form->getValue('selectedDomain'));
             $this->_status->addMessage('info', "Requested Domain Sync ".pm_Settings::get('selectedDomainSychronise'));
             $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/synchronise-a-domain/domain/'.pm_Settings::get('selectedDomainSychronise'))]);
@@ -686,8 +662,6 @@ class IndexController extends pm_Controller_Action
         $domInfo = $this->getDomainInfo();
         $list = $domInfo->webspace->get->result;
 
-//        $domainSelector[-1] = 'Global';
-
         if ($list->status = 'ok') {
             foreach ($list as $domain) {
                 if (isset($domain->data->gen_info->name)) {
@@ -700,29 +674,18 @@ class IndexController extends pm_Controller_Action
             'label' => 'Select domain',
             'multiOptions' => $domainSelector,
         ]);
-//        $form->addElement('SimpleText', 'text', [
-//            'value' => 'Selected domain: ' . $form->getValue('$domain'),
-//        ]);
-
 //        $form->addControlButtons(['cancelLink' => pm_Context::getBaseUrl(),]);
         $form->addControlButtons(['sendTitle' => 'Delete Domain' ,'cancelLink' => pm_Context::getBaseUrl(),]);
 
-
         // Process the form - syncronise records for a specific domain
         if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
-            //pm_Settings::set('selectedDomain', "NO DOMAIN SELECTED");
-
-//            pm_Settings::set('selectedDomainDelete', $form->getValue('selectedDomain'));
             $domainToDelete=$form->getValue('selectedDomain');
             $this->_status->addMessage('info', "Requested Domain Delete ".$domainToDelete);
-//            }
-//            $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/delete-a-domain/domain/'.$domainToDelete)]);
             $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/delete-a-domain/domain/'.pm_Settings::get('selectedDomainDelete'))]);
-
         }
         $this->view->form = $form;
     }
-//$this->cancelAllAction();
+
     public function cancelAction()
     {
         pm_Log::info('Try get tasks');
@@ -741,24 +704,19 @@ class IndexController extends pm_Controller_Action
     }
     public function cancelDoneTaskAction()
     {
-        
         pm_Log::info('Try get tasks');
         $tasks = $this->taskManager->getTasks(['task_synchroniseadomain']);
-//        $testtasks = $this->taskManager->getTasks(['task_synchroniseadomain']);
-//        $xyz=count($tasks);
-//        $this->safedns_write_log("TASKS: $xyz");
         $i = count($tasks) - 1;
         while ($i >= 0) {
             $this->safedns_write_log("\ncanceldonetask\n");
             $this->safedns_write_log($tasks[$i]->getStatus);
             if ($tasks[$i]->getStatus() == pm_LongTask_Task::STATUS_DONE) {
                 $this->taskManager->cancel($tasks[$i]);
-                //break;
             }
             $i--;
         }
         $this->safedns_write_log("canceldonetask-END");
-        $this->_status->addMessage('info', "cancelDoneTaskAction");
+        //$this->_status->addMessage('info', "cancelDoneTaskAction");
 
         $this->_redirect('index/index');
     }
@@ -767,9 +725,8 @@ class IndexController extends pm_Controller_Action
     {
         $this->taskManager->cancelAllTasks();
         pm_Settings::set('taskLock',null);
-        $this->_status->addMessage('info', "cancelAllTask ");
+        //$this->_status->addMessage('info', "cancelAllTask ");
         $this->_redirect(pm_settings::get('previousLocation'));
-//        $this->_redirect('index/tools');
     }
 
     public function getDomainInfo()
