@@ -483,7 +483,7 @@ class IndexController extends pm_Controller_Action
         } elseif (strcmp($helpSettingParam, 'Hide') == 0) {
             pm_Settings::set('mz_show_help',null);
         }
-        $this->_status->addMessage('warning', "Show Hide Help $helpSettingParam");
+        //$this->_status->addMessage('warning', "Show Hide Help $helpSettingParam");
         $this->_redirect('index/manageZones');
     }
 
@@ -532,7 +532,7 @@ class IndexController extends pm_Controller_Action
         pm_Settings::set('zoneSettings-'.$domainx,$newZoneSettings);
         
         // Notification
-        $this->_status->addMessage('info', "enableZoneAction domain:$domainx new setting:$newEnabledSetting");
+        //$this->_status->addMessage('info', "enableZoneAction domain:$domainx new setting:$newEnabledSetting");
 
         // Redirect to manageZones
         $this->_redirect('index/manageZones');
@@ -562,7 +562,7 @@ class IndexController extends pm_Controller_Action
         pm_Settings::set('zoneSettings-'.$domainx,$newZoneSettings);
 
         // Notification
-        $this->_status->addMessage('info', "enableAutosyncAction domain:$domainx new setting:$newEnabledSetting");
+        //$this->_status->addMessage('info', "enableAutosyncAction domain:$domainx new setting:$newEnabledSetting");
 
         // Redirect to manageZones
         $this->_redirect('index/manageZones');
@@ -716,7 +716,7 @@ class IndexController extends pm_Controller_Action
             $i--;
         }
         $this->safedns_write_log("canceldonetask-END");
-        $this->_status->addMessage('info', "cancelDoneTaskAction");
+        //$this->_status->addMessage('info', "cancelDoneTaskAction");
 
         $this->_redirect('index/index');
     }
@@ -725,7 +725,7 @@ class IndexController extends pm_Controller_Action
     {
         $this->taskManager->cancelAllTasks();
         pm_Settings::set('taskLock',null);
-        $this->_status->addMessage('info', "cancelAllTask ");
+        //$this->_status->addMessage('info', "cancelAllTask ");
         $this->_redirect(pm_settings::get('previousLocation'));
     }
 
