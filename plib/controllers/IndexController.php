@@ -153,70 +153,101 @@ class IndexController extends pm_Controller_Action
     public function welcomeAction() {
 
         $form = new pm_Form_Simple();
-
-        $form->addElement('SimpleText', 'text', [
-            'value' => "This extension allows you to manage your SafeDNS Zones from inside plesk."
-        ]);
-        if (!pm_Settings::get('validKey')) {
-            $form->addElement('SimpleText', 'enterkey', [
-                'value' => "To get started, enter an API Key below and click Save."
+        pm_settings::set('previousLocation','index/welcome');
+        if (!pm_Settings::get('setup_IP')) {
+            $form->addElement('SimpleText', 'text', [
+                'value' => "This extension allows you to manage your SafeDNS Zones from inside plesk."
             ]);
-            $form->addElement('text', 'api_key', ['label' => 'Please enter API Key', 'value' => pm_Settings::get('api_key'), 'style' => 'width: 40%;']);
-            $form->addControlButtons(['sendTitle' => 'Save','cancelHidden' => true,'hideLegend'=>true]);
-            $form->addElement('SimpleText', 'enterkey2', [
-                'value' => 'When you get the "API Key is Valid" popup, Reload this page for the next instructions.'
+            $form->addElement('SimpleText', 'text2', [
+                'value' => "There are some settings you need to check before use, to make sure the DNS records will be valid."
             ]);
+            $form->addElement('SimpleText', 'text3', [
+                'value' => "First, make sure the server's public IP address is set in Plesk."
+            ]);
+            $form->addElement('SimpleText', 'text4', [
+                'value' => "Please go to Tools & Settings > IP Addresses, and make sure there is a Public IP Address set."
+            ]);
+            $form->addElement('SimpleText', 'text5', [
+                'value' => "Then click Next below."
+            ]);
+            $form->addControlButtons(['sendTitle' => 'Next','cancelHidden' => true,'hideLegend'=>true]);
             if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
-                if ($form->getValue('api_key')) {
-                    $this->_api_key = $form->getValue('api_key');
-                }
-                pm_Settings::set('api_key', $this->_api_key);
-                $this->_status->addMessage('info', 'API Key Saved');
-                pm_settings::set('previousLocation','index/welcome');
-                $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key')]);
+                pm_Settings::set('setup_IP', "complete");
+                $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'welcome'))]);
             }
-        } else {
-            $form->addElement('SimpleText', 'validkey', [
-                'value' => "Great! The key is valid."
+
+        } elseif (!pm_Settings::get('nameserverChanged')) {
+             $form->addElement('SimpleText', 'changens', [
+                 'value' => "Next, the nameservers in Plesk's dns zones must be set to ukfast."
+             ]);
+             $form->addElement('SimpleText', 'changens2', [
+                 'value' => "Please go to Tools & Settings > General Settings > DNS Zone Template, and change the NS records to:"
+             ]);
+             $form->addElement('SimpleText', 'changens3', [
+                 'value' => "ns0.ukfast.net"
+             ]);
+             $form->addElement('SimpleText', 'changens4', [
+                 'value' => "ns1.ukfast.net"
+             ]);
+             $form->addElement('SimpleText', 'changens5', [
+                 'value' => "Then, click 'Apply DNS Template Changes' , and select 'Apply the changes to all zones.'   "
+             ]);
+             $form->addElement('SimpleText', 'changens6', [
+                 'value' => "Optional: If any of your domains use an external DNS service, you can update the DNS for individual domains in Home > Domains"
+             ]);
+             $form->addElement('SimpleText', 'changens7', [
+                 'value' => "Finally, Click the Complete button below"
+             ]);
+             $form->addControlButtons(['sendTitle' => 'Complete','cancelHidden' => true,'hideLegend'=>true]);
+                 if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
+                     pm_Settings::set('nameserverChanged','true');
+                     pm_Settings::set('setupCompleted','true');
+                     pm_settings::set('previousLocation','index/welcome');
+                 $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key')]);
+                 }
+        } elseif (!pm_Settings::get('validKey')) {
+             $form->addElement('SimpleText', 'enterkey', [
+                 'value' => "Finally, enter an API Key below and click Save."
+             ]);
+             $form->addElement('SimpleText', 'enterkey2', [
+                 'value' => "If you need to create or reset an API Key, you can do this in your MyUKFast account, under 'API Applications'."
+             ]);
+             $form->addElement('SimpleText', 'enterkey4', [
+                 'value' => "The key should have Read & Write Access to SafeDNS, and DDoSX."
+             ]);
+             $form->addElement('SimpleText', 'enterkey5', [
+                 'value' => "NOTE: DDoSX Will be implemented in a future release."
+             ]);
+             $form->addElement('text', 'api_key', ['label' => 'Please enter API Key', 'value' => pm_Settings::get('api_key'), 'style' => 'width: 40%;']);
+             $form->addControlButtons(['sendTitle' => 'Save','cancelHidden' => true,'hideLegend'=>true]);
+             $form->addElement('SimpleText', 'enterkey6', [
+                 'value' => 'When you get the "API Key is Valid" notification, Setup is complete and you can go to the Manage DNS Zones tab to configure some domains.'
+             ]);
+             if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
+                 if ($form->getValue('api_key')) {
+                     $this->_api_key = $form->getValue('api_key');
+                 }
+                 pm_Settings::set('api_key', $this->_api_key);
+                 $this->_status->addMessage('info', 'API Key Saved');
+                 pm_settings::set('previousLocation','index/welcome');
+                 $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key')]);
+             }
+//            } else {
+//                $form->addElement('SimpleText', 'validkey', [
+//                    'value' => "Great! The key is valid."
+//                ]);
+        } elseif (pm_Settings::get('validKey')) {
+            $form->addElement('SimpleText', 'validkey2', [
+                'value' => "Setup is Complete, You can now go to the Manage DNS Zones tab to configure some domains."
             ]);
-            if (!pm_Settings::get('nameserverChanged')) {
-                $form->addElement('SimpleText', 'changens', [
-                'value' => "Next, the nameservers in Plesk's dns zones must be set to ukfast."
-                ]);
-                $form->addElement('SimpleText', 'changens2', [
-                'value' => "Please go to Tools & Settings > General Settings > DNS Zone Template, and change the NS records to:"
-                ]);
-                $form->addElement('SimpleText', 'changens3', [
-                'value' => "ns0.ukfast.net"
-                ]);
-                $form->addElement('SimpleText', 'changens4', [
-                'value' => "ns1.ukfast.net"
-                ]);
-                $form->addElement('SimpleText', 'changens5', [
-                'value' => "Then, click 'Apply DNS Template Changes' , and select 'Apply the changes to all zones.'   "
-                ]);
-                $form->addElement('SimpleText', 'changens5', [
-                'value' => "Finally, Click the Complete button below"
-                ]);
-                $form->addControlButtons(['sendTitle' => 'Complete','cancelHidden' => true,'hideLegend'=>true]);
-                if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
-                    pm_Settings::set('nameserverChanged','true');
-                    pm_Settings::set('setupCompleted','true');
-                    pm_settings::set('previousLocation','index/welcome');
-                $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key')]);
-                }
-            } else{
-                if (pm_Settings::get('setupCompleted')) {
-                    $form->addElement('SimpleText', 'validkey2', [
-                        'value' => "Setup is Complete, You can now go to the Manage DNS Zones tab to enable some domains."
-                    ]);
-                    $form->addControlButtons(['sendTitle' => 'Go to Manage DNS Zones','cancelHidden' => true,'hideLegend'=>true]);
-                    if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
-                        $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'manageZones'))]);
-                    }
-                }
+            $form->addControlButtons(['sendTitle' => 'Go to Manage DNS Zones','cancelHidden' => true,'hideLegend'=>true]);
+            if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
+                $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'manageZones'))]);
+          //  }
             }
         }
+        //}
+        //}
         $this->view->form = $form;
         $this->view->tabs = $this->_getTabs();
     }
