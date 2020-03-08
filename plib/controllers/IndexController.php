@@ -520,7 +520,8 @@ class IndexController extends pm_Controller_Action
         $helpSettingParam = $this->getParam('new-help-setting');
         // Save the modified string to Plesk key value storage
         if (strcmp($helpSettingParam, 'Show') == 0) {
-           pm_Settings::set('mz_show_help','Show'); 
+           pm_Settings::set('mz_show_help','Show');
+           $this->_status->addMessage('info', "Help text is at the bottom of the page"); 
         } elseif (strcmp($helpSettingParam, 'Hide') == 0) {
             pm_Settings::set('mz_show_help',null);
         }
