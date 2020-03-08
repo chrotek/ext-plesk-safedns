@@ -299,6 +299,7 @@ class IndexController extends pm_Controller_Action
                             $newEnabledSetting='False';
                             $syncNowLink=pm_Context::getActionUrl('index','add-task').'/type/synchronise-a-domain/domain/'.$plesk_domain;
                             $deleteDomainLink=pm_Context::getActionUrl('index','add-task').'/type/delete-a-domain/domain/'.$plesk_domain;
+                            $toggleAutosyncLink=pm_Context::getActionUrl('index','toggle-autosync-zone').'/domain/'.$plesk_domain.'/new-autosync-setting/'.$newAutosyncSetting;
                         } else {
                             $domainEnabledIcon=$redCrossIcon;
                             $domainEnabledStatus=False;
@@ -307,8 +308,9 @@ class IndexController extends pm_Controller_Action
                             $syncNowLink=pm_Context::getActionUrl('index','synchronise-disabled-zone-fail/domain/').$plesk_domain;
                             $toggleAutosyncLink=pm_Context::getActionUrl('index','autosync-disabled-zone-fail/domain/').$plesk_domain;
                             $deleteDomainLink=pm_Context::getActionUrl('index','delete-disabled-zone-fail/domain/').$plesk_domain;
+                            $toggleAutosyncLink=pm_Context::getActionUrl('index','autosync-disabled-zone-fail');
                         };
-                        // Load LastSync time. Currently being misused as a debug function.
+                        // Load LastSync time. Currently being misused as a debug function.      
                         $lastSync=$zoneSettings[1];
                         // If current domaind has autosync enabled
                         if (strcmp($zoneSettings[2], 'True') == 0) {
@@ -322,7 +324,7 @@ class IndexController extends pm_Controller_Action
                             $autosyncEnabledText='N';
                             $newAutosyncSetting='True';
                         };
-                        $toggleAutosyncLink=pm_Context::getActionUrl('index','toggle-autosync-zone').'/domain/'.$plesk_domain.'/new-autosync-setting/'.$newAutosyncSetting;
+                       // $toggleAutosyncLink=pm_Context::getActionUrl('index','toggle-autosync-zone').'/domain/'.$plesk_domain.'/new-autosync-setting/'.$newAutosyncSetting;
 
                         // Block manual sync if domain is not enabled
 
@@ -464,8 +466,16 @@ class IndexController extends pm_Controller_Action
                     $zoneSettingsX=pm_Settings::get('zoneSettings-'.$plesk_domain);
                     // Explode the array's stored data from string to array
                     $zoneSettings=explode("|",$zoneSettingsX);
-                    // Create new Array with changed setting
-                    $newZoneSettingsX=array($newEnabledSetting,$zoneSettings[1],$zoneSettings[2]);
+
+                    // If zone is being disabled, also disable autosync
+                    if (strcmp($newEnabledSetting, 'False') == 0) {
+                        $newZoneSettingsX=array($newEnabledSetting,$zoneSettings[1],$newEnabledSetting);
+                    } else {
+                        // Create new Array with changed setting
+                        $newZoneSettingsX=array($newEnabledSetting,$zoneSettings[1],$zoneSettings[2]);
+                    }
+
+
                     // Implode the array with new data, from array to string
                     $newZoneSettings=implode("|",$newZoneSettingsX);
                     // Save the modified string to Plesk key value storage
@@ -551,10 +561,14 @@ class IndexController extends pm_Controller_Action
 
         // Explode the array's stored data from string to array
         $zoneSettings=explode("|",$zoneSettingsX);
-
-        // Create new Array with changed setting
-        $newZoneSettingsX=array($newEnabledSetting,$zoneSettings[1],$zoneSettings[2]);
-
+        
+        // If zone is being disabled, also disable autosync
+        if (strcmp($newEnabledSetting, 'False') == 0) {
+            $newZoneSettingsX=array($newEnabledSetting,$zoneSettings[1],$newEnabledSetting);
+        } else {
+            // Create new Array with changed setting
+            $newZoneSettingsX=array($newEnabledSetting,$zoneSettings[1],$zoneSettings[2]);
+        }
         // Implode the array with new data, from array to string
         $newZoneSettings=implode("|",$newZoneSettingsX);
 //        var_dump($newZoneSettings);
