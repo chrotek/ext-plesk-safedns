@@ -175,7 +175,21 @@ class IndexController extends pm_Controller_Action
                 pm_Settings::set('setup_IP', "complete");
                 $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'welcome'))]);
             }
-
+        } elseif (!pm_Settings::get('hostnameChecked')) {
+             $form->addElement('SimpleText', 'checkhostname', [
+                 'value' => "Next, check the hostname is correct"
+             ]);
+             $form->addElement('SimpleText', 'checkhostname2', [
+                 'value' => "Please go to Tools & Settings > Server Settings, and check the hostname."
+             ]);
+             $form->addElement('SimpleText', 'checkhostname3', [
+                 'value' => "The full hostname must also resolve to the server's public IP address. If it does not , go to SafeDNS and create the A record"
+             ]);
+             $form->addControlButtons(['sendTitle' => 'Next','cancelHidden' => true,'hideLegend'=>true]);
+                 if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
+                     pm_Settings::set('hostnameChecked','true');
+                 $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'welcome'))]);
+                 }
         } elseif (!pm_Settings::get('nameserverChanged')) {
              $form->addElement('SimpleText', 'changens', [
                  'value' => "Next, the nameservers in Plesk's dns zones must be set to ukfast."
@@ -202,8 +216,7 @@ class IndexController extends pm_Controller_Action
                  if ($this->getRequest()->isPost() && $form->isValid($this->getRequest()->getPost())) {
                      pm_Settings::set('nameserverChanged','true');
                      pm_Settings::set('setupCompleted','true');
-                     pm_settings::set('previousLocation','index/welcome');
-                 $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'add-task') . '/type/test-api-key')]);
+                 $this->_helper->json(['redirect' => (pm_Context::getActionUrl('index', 'welcome'))]);
                  }
         } elseif (!pm_Settings::get('validKey')) {
              $form->addElement('SimpleText', 'enterkey', [
