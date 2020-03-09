@@ -12,6 +12,7 @@
   <vendor>UKFast</vendor>
   <url>https://github.com/chrotek/ext-plesk-safedns</url>
   <plesk_min_version>12.0.18</plesk_min_version>
+  <os>unix</os>
   <!--Localized descriptions below-->
   <description xml:lang="ar">يوفر هذا الملحق الوظيفة اللازمة للتكامل مع SafeDNS</description>
   <description xml:lang="ca-ES"></description>
