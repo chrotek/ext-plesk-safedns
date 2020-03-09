@@ -1,13 +1,10 @@
 <?php
-   // Modules_SafednsPlesk_Task_SynchroniseDomains
-//class Modules_SafednsPlesk_Task_Succeed extends pm_LongTask_Task
 class Modules_SafednsPlesk_Task_DeleteADomain extends pm_LongTask_Task
 {
     const UID = 'delete-a-domain';
     public $trackProgress = true;
     private $sleep = 3;
     private static $progressText = 'Progress is ';
-    //public $domainName=var_dump(pm_Settings::get('selectedDomainDelete'));
 
     public function safedns_write_log($log_msg) {
         $log_filename = "/var/log/plesk/ext-plesk-safedns";
@@ -90,14 +87,8 @@ class Modules_SafednsPlesk_Task_DeleteADomain extends pm_LongTask_Task
         $this->updateProgress($currentPercent);
         $currentPercent=($currentPercent+$actionPercent);
         $this->safedns_write_log("Deleting Zone: ".$plesk_domain);
-
         $this->SafeDNS_API_Call('DELETE',$api_url."/zones/".$plesk_domain,false);
-
-        
-
     }
-
-
 
     public function statusMessage()
     {
@@ -105,7 +96,6 @@ class Modules_SafednsPlesk_Task_DeleteADomain extends pm_LongTask_Task
         pm_Log::info('Start method statusMessage. ID: ' . $this->getId() . ' with status: ' . $this->getStatus());
         switch ($this->getStatus()) {
             case static::STATUS_RUNNING:
-//                return pm_Locale::lmsg('Syncronising All Domain');
                 pm_Settings::set('taskLock','locked');
                 return ("Running Task: Delete $domainName From SafeDNS");
             case static::STATUS_DONE:
@@ -123,19 +113,4 @@ class Modules_SafednsPlesk_Task_DeleteADomain extends pm_LongTask_Task
         // Unlock the forms
         pm_Settings::set('taskLock',null);
     }
-
-/*    public function onStart()
-    {
-        pm_Log::info('Start method onStart');
-        pm_Log::info('p1 is ' . $this->getParam('p1'));
-        $this->setParam('onStart', 1);
-    }
-
-    public function onDone()
-    {
-        pm_Log::info('Start method onDone');
-        $this->setParam('onDone', 1);
-        pm_Log::info('End method onDone');
-        pm_Log::info('Status: ' . $this->getStatus());
-    }*/
 }
