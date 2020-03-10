@@ -135,7 +135,7 @@ class IndexController extends pm_Controller_Action
             'action' => 'manageZones',
         ];
         $tabs[] = [
-            'title' => 'Tools & Settings',
+            'title' => 'Tasks & Config',
             'action' => 'tools',
         ];
 
