@@ -1,3 +1,4 @@
+
 # UKFast SafeDNS Plesk Integration
 
 ## Info
@@ -7,9 +8,9 @@ The UKFast SafeDNS Plesk extension provides the ability to manage the SafeDNS Zo
 It will synchronise the DNS Zones from Plesk with SafeDNS. 
 It does not replace or modify Plesk’s internal DNS , so if you have specific domains which use an external DNS Service, you’re free to continue using that service.
 
-If you have any issues using this extension, there may be something helpful logged in: /var/log/plesk/ext-plesk-safedns/
+Logs are stored in : /var/log/plesk/ext-plesk-safedns/
 
-At present, this extension is only compatible with linux systems. 
+At present, this extension is **only compatible with linux systems**. 
 Usage on windows will result in synchronise tasks erroring & no logs being written by the extension.
 
 ## Setup
@@ -54,3 +55,20 @@ The welcome page will guide you through checking the settings explained in the �
 #### Manage DNS Zones
 In The Manage DNS Zones tab, you can control which domains the extension will synchronise to SafeDNS.
 
+| Column                               | Info                                                                                                                                                                                                                   |
+|--------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Enabled                              | Domains must be enabled here to work with the extension.                                                                                                                                                               |
+| Sync Now                             | This will push an enabled zone to SafeDNS. <br>If a record already exists, it will be updated to match plesk. <br>If a record exists on SafeDNS but has been removed, (or didn't exist) on Plesk, it will be deleted   |
+| Last Synchronise                     | When a domain is Synchronised, this is updated with the date & time                                                                                                                                                    |                       
+| Automatic Sync <br>{on zone change)  | When Plesk's internal DNS is updated, the domains that have this enabled, will be automatically Synchronised with SafeDNS. <br> For let’s encrypt to perform DNS CNAME Verification successfully, this must be enabled.| 
+| Delete Zone <br>(From SafeDNS)       | Deletes the zone from SafeDNS. Only if the zone is enabled.                                                                                                                                                            |
+
+#### Tasks & Config                                                                                                                      |
+In Tasks & Config , you have the following options:                                                                                      |
+| Button          | Function                                                                                                             |																																		 |
+| Set API Key     | Open a form for API Key to be inputted. When a Key is saved, It will be tested to confirm it is valid. _             |
+| Sync All        | This will synchronise all enabled zones to SafeDNS.                                                                  |
+| Sync Domain     | Open a form with a Dropdown to select a Domain. <br>On Submit,  push only the selected zone to SafeDNS.              |
+| Delete All      | This will immediately delete all enabled zones from SafeDNS.                                                         |
+| Delete Domain   | Open a form with a Dropdown to select a Domain. <br>On Submit,  delete only the selected zone from SafeDNS.          |
+| Clear All Tasks | Clears out the extension’s task queue. <br>If a task has errored and you cannot run another one, click this button.  |
