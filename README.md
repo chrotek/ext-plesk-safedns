@@ -63,10 +63,13 @@ In The Manage DNS Zones tab, you can control which domains the extension will sy
 | Automatic Sync <br>{on zone change)  | When Plesk's internal DNS is updated, the domains that have this enabled, will be automatically Synchronised with SafeDNS. <br> For let’s encrypt to perform DNS CNAME Verification successfully, this must be enabled.| 
 | Delete Zone <br>(From SafeDNS)       | Deletes the zone from SafeDNS. Only if the zone is enabled.                                                                                                                                                            |
 
-#### Tasks & Config                                                                                                                      |
-In Tasks & Config , you have the following options:                                                                                      |
-| Button          | Function                                                                                                             |																																		 |
-| Set API Key     | Open a form for API Key to be inputted. When a Key is saved, It will be tested to confirm it is valid. _             |
+#### Tasks & Config
+
+In Tasks & Config , you have the following options:
+
+| Button          | Function                                                                                                             |
+|-----------------|----------------------------------------------------------------------------------------------------------------------|
+| Set API Key     | Open a form for API Key to be inputted. When a Key is saved, It will be tested to confirm it is valid.               |
 | Sync All        | This will synchronise all enabled zones to SafeDNS.                                                                  |
 | Sync Domain     | Open a form with a Dropdown to select a Domain. <br>On Submit,  push only the selected zone to SafeDNS.              |
 | Delete All      | This will immediately delete all enabled zones from SafeDNS.                                                         |
