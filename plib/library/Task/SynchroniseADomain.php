@@ -72,6 +72,7 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
                 die("API Sent no Data back. Response code :".$responsecode."n");
             }
         }
+	$this->safedns_write_log("SafeDNS APi Response code:".$responsecode);
         curl_close($curl);
         return $result;
     }
@@ -160,7 +161,9 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
               'name' => $input_zone,
           );
 
-          $this->SafeDNS_API_Call('POST',$api_url."/zones/", json_encode($postdata));
+          $this->SafeDNS_API_Call('POST',$api_url."/zones", json_encode($postdata));
+          ;$this->safedns_write_log("HANDOVERDEBUG: Sent POST to ".$api_url."/zones"); #DEBUG
+          ;$this->safedns_write_log("HANDOVERDEBUG: Sent POSTDATA: ".json_encode($postdata)); #DEBUG
           }
     }
    
@@ -188,7 +191,10 @@ class Modules_SafednsPlesk_Task_SynchroniseADomain extends pm_LongTask_Task
         );
         }
         $this->SafeDNS_API_Call('POST',$api_url."/zones/".$zone_name."/records", json_encode($postdata));
+	$this->safedns_write_log("HANDOVERDEBUG: Sent POST to ".$api_url."/zones/".$zone_name."/records"); #DEBUG
+	$this->safedns_write_log("HANDOVERDEBUG: Sent POSTDATA: ".json_encode($postdata)); #DEBUG
     }
+
     
     public function find_matching_record_safedns($api_url,$zone_name,$record_name,$record_type,$record_content,$record_opt,$safedns_records_array){
     // Check the record exists in zone exactly as specified. If yes return the Safedns ID Number and True, if No just return False
